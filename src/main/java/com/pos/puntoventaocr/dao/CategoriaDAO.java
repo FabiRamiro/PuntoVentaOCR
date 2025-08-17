@@ -3,10 +3,12 @@ package com.pos.puntoventaocr.dao;
 import com.pos.puntoventaocr.config.DatabaseConnection;
 import com.pos.puntoventaocr.models.Categoria;
 
-import java.sql.*;
+import java.sql.*;  // aquí ya están todos: Connection, PreparedStatement, Statement, ResultSet
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
+
 
 public class CategoriaDAO {
 
