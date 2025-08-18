@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<DialogPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pos.puntoventaocr.controllers.AjustarStockController">
+   <header>
+      <Label style="-fx-font-size: 16px; -fx-font-weight: bold;" text="Ajustar Stock" />
+   </header>
+
+   <content>
+      <VBox prefWidth="400.0" spacing="15.0">
+         <padding>
+            <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+         </padding>
+
+         <!-- Información del producto -->
+         <VBox spacing="10.0">
+            <children>
+               <Label style="-fx-font-weight: bold;" text="Producto Seleccionado" />
+               <Separator />
+               <Label fx:id="lblProducto" style="-fx-font-size: 14px;" text="Nombre del producto" />
+               <Label fx:id="lblStockActual" style="-fx-font-size: 12px; -fx-text-fill: #6c757d;" text="Stock actual: 0" />
+            </children>
+         </VBox>
+
+         <!-- Tipo de ajuste -->
+         <VBox spacing="10.0">
+            <children>
+               <Label style="-fx-font-weight: bold;" text="Tipo de Ajuste" />
+               <Separator />
+               <RadioButton fx:id="rbEntrada" selected="true" text="Entrada de mercancía (+)" />
+               <RadioButton fx:id="rbSalida" text="Salida de mercancía (-)" />
+               <RadioButton fx:id="rbAjuste" text="Ajuste de inventario (establecer cantidad exacta)" />
+            </children>
+         </VBox>
+
+         <!-- Cantidad -->
+         <VBox spacing="10.0">
+            <children>
+               <Label style="-fx-font-weight: bold;" text="Cantidad" />
+               <Separator />
+               <TextField fx:id="txtCantidad" promptText="Ingrese la cantidad" />
+               <Label fx:id="lblNuevoStock" style="-fx-font-size: 12px; -fx-text-fill: #28a745;" text="Nuevo stock: 0" />
+            </children>
+         </VBox>
+
+         <!-- Motivo -->
+         <VBox spacing="10.0">
+            <children>
+               <Label style="-fx-font-weight: bold;" text="Motivo del Ajuste" />
+               <Separator />
+               <ComboBox fx:id="cmbMotivo" prefWidth="350.0" promptText="Seleccionar motivo" />
+               <TextArea fx:id="txtObservaciones" prefRowCount="3" promptText="Observaciones adicionales (opcional)" />
+            </children>
+         </VBox>
+      </VBox>
+   </content>
+
+   <buttonTypes>
+      <ButtonType fx:constant="OK" />
+      <ButtonType fx:constant="CANCEL" />
+   </buttonTypes>
+</DialogPane>

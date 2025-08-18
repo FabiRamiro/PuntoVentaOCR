@@ -1,379 +1,346 @@
 package com.pos.puntoventaocr.controllers;
 
+import com.pos.puntoventaocr.dao.BitacoraDAO;
 import com.pos.puntoventaocr.utils.AlertUtils;
 import com.pos.puntoventaocr.utils.SessionManager;
 import com.pos.puntoventaocr.models.Usuario;
+import javafx.animation.Timeline;
+import javafx.animation.KeyFrame;
 import javafx.application.Platform;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.fxml.Initializable;
-import javafx.scene.Parent;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 import java.io.IOException;
-import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ResourceBundle;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.Optional;
 
-public class PrincipalController implements Initializable {
+public class PrincipalController {
 
-    @FXML private BorderPane mainContainer;
+    @FXML private BorderPane mainPane;
     @FXML private MenuBar menuBar;
     @FXML private Label lblUsuario;
+    @FXML private Label lblRol;
     @FXML private Label lblFechaHora;
-    @FXML private Label lblEstadoSesion;
-    @FXML private ProgressBar progressBarSesion;
+    @FXML private Label lblSesionInfo;
 
     // Menús principales
     @FXML private Menu menuVentas;
     @FXML private Menu menuProductos;
-    @FXML private Menu menuUsuarios;
-    @FXML private Menu menuReportes;
     @FXML private Menu menuOCR;
+    @FXML private Menu menuReportes;
+    @FXML private Menu menuAdministracion;
     @FXML private Menu menuSistema;
 
-    // Items de menú - Ventas
-    @FXML private MenuItem menuNuevaVenta;
-    @FXML private MenuItem menuHistorialVentas;
-    @FXML private MenuItem menuAnularVenta;
-
-    // Items de menú - Productos
-    @FXML private MenuItem menuGestionarProductos;
-    @FXML private MenuItem menuCategorias;
-    @FXML private MenuItem menuInventario;
-
-    // Items de menú - Usuarios (solo administradores)
-    @FXML private MenuItem menuGestionarUsuarios;
-    @FXML private MenuItem menuRoles;
-
-    // Items de menú - Reportes
-    @FXML private MenuItem menuReporteVentas;
-    @FXML private MenuItem menuReporteProductos;
-    @FXML private MenuItem menuReporteStock;
-
-    // Items de menú - OCR
-    @FXML private MenuItem menuValidarTransferencia;
-    @FXML private MenuItem menuHistorialOCR;
-
-    // Items de menú - Sistema
-    @FXML private MenuItem menuCambiarPassword;
-    @FXML private MenuItem menuConfiguracion;
-    @FXML private MenuItem menuAcercaDe;
-
-    private Timer timerReloj;
     private SessionManager sessionManager;
+    private BitacoraDAO bitacoraDAO;
+    private Timeline clockTimeline;
 
-    @Override
-    public void initialize(URL location, ResourceBundle resources) {
+    public void initialize() {
+        System.out.println("🔍 DEBUG: Inicializando PrincipalController...");
+
         sessionManager = SessionManager.getInstance();
+        bitacoraDAO = new BitacoraDAO();
 
-        configurarInterfaz();
+        // Configurar información de usuario
+        configurarInterfazUsuario();
+
+        // Configurar permisos de menús
+        configurarPermisosMenus();
+
+        // Iniciar reloj
         iniciarReloj();
-        configurarPermisos();
-        actualizarInfoUsuario();
+
+        // Cargar pantalla de bienvenida por defecto
+        cargarPantallaBienvenida();
+
+        System.out.println("✅ DEBUG: PrincipalController inicializado correctamente");
     }
 
-    private void configurarInterfaz() {
-        // Configurar la información inicial
-        lblUsuario.setText(sessionManager.getNombreUsuarioDisplay());
-
-        // Configurar progress bar de sesión
-        progressBarSesion.setProgress(0.0);
-
-        // Cargar vista inicial (dashboard o ventas)
-        cargarVistaInicial();
-    }
-
-    private void iniciarReloj() {
-        timerReloj = new Timer();
-        timerReloj.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                Platform.runLater(() -> {
-                    // Actualizar fecha y hora
-                    lblFechaHora.setText(LocalDateTime.now().format(
-                            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
-
-                    // Actualizar estado de sesión
-                    actualizarEstadoSesion();
-                });
-            }
-        }, 0, 1000); // Actualizar cada segundo
-    }
-
-    private void actualizarEstadoSesion() {
-        long tiempoSesion = sessionManager.getTiempoSesionMinutos();
-        lblEstadoSesion.setText("Sesión activa: " + tiempoSesion + " min");
-
-        // Actualizar progress bar (basado en 8 horas = 480 minutos)
-        double progreso = Math.min(tiempoSesion / 480.0, 1.0);
-        progressBarSesion.setProgress(progreso);
-
-        // Cambiar color si la sesión está cerca de expirar
-        if (progreso > 0.9) {
-            progressBarSesion.setStyle("-fx-accent: red;");
-        } else if (progreso > 0.7) {
-            progressBarSesion.setStyle("-fx-accent: orange;");
+    private void configurarInterfazUsuario() {
+        Usuario usuario = sessionManager.getUsuarioActual();
+        if (usuario != null) {
+            lblUsuario.setText(usuario.getNombreCompleto());
+            lblRol.setText(usuario.getNombreRol());
+            lblSesionInfo.setText("Sesión iniciada: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
         } else {
-            progressBarSesion.setStyle("-fx-accent: green;");
-        }
-
-        // Verificar si la sesión ha expirado
-        if (sessionManager.sesionExpirada()) {
-            cerrarSesionPorExpiracion();
+            lblUsuario.setText("Usuario no identificado");
+            lblRol.setText("Sin rol");
+            lblSesionInfo.setText("Sesión no válida");
         }
     }
 
-    private void configurarPermisos() {
+    private void configurarPermisosMenus() {
         Usuario usuario = sessionManager.getUsuarioActual();
         if (usuario == null) return;
 
-        String rol = usuario.getRol().getNombreRol().toUpperCase();
+        String rol = usuario.getNombreRol().toUpperCase();
+        System.out.println("🔍 DEBUG: Configurando permisos para rol: " + rol);
 
-        // Configurar visibilidad de menús según el rol
-        menuUsuarios.setVisible(sessionManager.tienePermiso("GESTIONAR_USUARIOS"));
-        menuOCR.setVisible(sessionManager.tienePermiso("VALIDAR_OCR"));
+        switch (rol) {
+            case "ADMINISTRADOR":
+                // Administrador tiene acceso a todo
+                menuVentas.setDisable(false);
+                menuProductos.setDisable(false);
+                menuOCR.setDisable(false);
+                menuReportes.setDisable(false);
+                if (menuAdministracion != null) {
+                    menuAdministracion.setDisable(false);
+                }
+                menuSistema.setDisable(false);
+                break;
 
-        // Configurar items específicos
-        menuAnularVenta.setDisable(!sessionManager.tienePermiso("ANULAR_VENTAS"));
-        menuGestionarProductos.setDisable(!sessionManager.tienePermiso("GESTIONAR_PRODUCTOS"));
-        menuInventario.setDisable(!sessionManager.tienePermiso("GESTIONAR_INVENTARIO"));
-        menuConfiguracion.setDisable(!sessionManager.tienePermiso("GESTIONAR_SISTEMA"));
-    }
+            case "GERENTE":
+                // Gerente tiene acceso a todo excepto administración de usuarios y sistema
+                menuVentas.setDisable(false);
+                menuProductos.setDisable(false);
+                menuOCR.setDisable(false);
+                menuReportes.setDisable(false);
+                if (menuAdministracion != null) {
+                    menuAdministracion.setDisable(true); // No puede gestionar usuarios ni sistema
+                }
+                menuSistema.setDisable(false);
+                break;
 
-    private void actualizarInfoUsuario() {
-        sessionManager.registrarActividad("Acceso al sistema principal");
-    }
+            case "CAJERO":
+                // Cajero solo puede hacer ventas y ver productos (sin modificar)
+                menuVentas.setDisable(false);
+                menuProductos.setDisable(false); // Puede ver productos pero sin modificar
+                menuOCR.setDisable(true); // Sin acceso a OCR
+                menuReportes.setDisable(true); // Sin acceso a reportes
+                if (menuAdministracion != null) {
+                    menuAdministracion.setDisable(true); // Sin acceso a administración
+                }
+                menuSistema.setDisable(false); // Solo cambiar contraseña
+                break;
 
-    private void cargarVistaInicial() {
-        // Por defecto cargar la vista de ventas o dashboard
-        if (sessionManager.tienePermiso("REALIZAR_VENTAS")) {
-            handleNuevaVenta(null);
-        } else {
-            cargarVista("/views/dashboard.fxml");
+            default:
+                // Sin permisos por defecto
+                menuVentas.setDisable(true);
+                menuProductos.setDisable(true);
+                menuOCR.setDisable(true);
+                menuReportes.setDisable(true);
+                if (menuAdministracion != null) {
+                    menuAdministracion.setDisable(true);
+                }
+                menuSistema.setDisable(true);
+                break;
         }
+
+        System.out.println("✅ DEBUG: Permisos configurados para " + rol);
     }
 
-    // === MÉTODOS DE NAVEGACIÓN ===
+    private void iniciarReloj() {
+        clockTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
+            lblFechaHora.setText(LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
+        }));
+        clockTimeline.setCycleCount(Timeline.INDEFINITE);
+        clockTimeline.play();
+    }
 
+    // ================== MÉTODOS DE MENÚ VENTAS ==================
     @FXML
-    private void handleNuevaVenta(ActionEvent event) {
-        if (verificarPermiso("REALIZAR_VENTAS")) {
-            cargarVista("/views/ventas/nueva_venta.fxml");
-        }
-    }
-
-    @FXML
-    private void handleHistorialVentas(ActionEvent event) {
-        if (verificarPermiso("VER_REPORTES")) {
-            cargarVista("/views/ventas/historial_ventas.fxml");
-        }
-    }
-
-    @FXML
-    private void handleAnularVenta(ActionEvent event) {
-        if (verificarPermiso("ANULAR_VENTAS")) {
-            cargarVista("/views/ventas/anular_venta.fxml");
-        }
-    }
-
-    @FXML
-    private void handleGestionarProductos(ActionEvent event) {
-        if (verificarPermiso("GESTIONAR_PRODUCTOS")) {
-            cargarVista("/views/productos/gestionar_productos.fxml");
-        }
-    }
-
-    @FXML
-    private void handleCategorias(ActionEvent event) {
-        if (verificarPermiso("GESTIONAR_CATEGORIAS")) {
-            cargarVista("/views/productos/categorias.fxml");
-        }
-    }
-
-    @FXML
-    private void handleInventario(ActionEvent event) {
-        if (verificarPermiso("GESTIONAR_INVENTARIO")) {
-            cargarVista("/views/productos/inventario.fxml");
-        }
-    }
-
-    @FXML
-    private void handleGestionarUsuarios(ActionEvent event) {
-        if (verificarPermiso("GESTIONAR_USUARIOS")) {
-            cargarVista("/views/usuarios/gestionar_usuarios.fxml");
-        }
+    private void nuevaVenta() {
+        cargarVista("/fxml/ventas/nueva_venta.fxml", "Nueva Venta");
     }
 
     @FXML
-    private void handleRoles(ActionEvent event) {
-        if (verificarPermiso("GESTIONAR_USUARIOS")) {
-            cargarVista("/views/usuarios/roles.fxml");
-        }
+    private void historialVentas() {
+        cargarVista("/fxml/ventas/historial_ventas.fxml", "Historial de Ventas");
     }
 
     @FXML
-    private void handleValidarTransferencia(ActionEvent event) {
-        if (verificarPermiso("VALIDAR_OCR")) {
-            cargarVista("/views/ocr/validar_transferencia.fxml");
-        }
+    private void gestionarDevoluciones() {
+        cargarVista("/fxml/ventas/gestionar_devoluciones.fxml", "Gestionar Devoluciones");
+    }
+
+    // ================== MÉTODOS DE MENÚ PRODUCTOS ==================
+    @FXML
+    private void gestionarProductos() {
+        cargarVista("/fxml/productos/gestionar_productos.fxml", "Gestionar Productos");
     }
 
     @FXML
-    private void handleHistorialOCR(ActionEvent event) {
-        if (verificarPermiso("VALIDAR_OCR")) {
-            cargarVista("/views/ocr/historial_ocr.fxml");
-        }
+    private void gestionarCategorias() {
+        cargarVista("/fxml/productos/gestionar_categorias.fxml", "Gestionar Categorías");
     }
 
     @FXML
-    private void handleReporteVentas(ActionEvent event) {
-        if (verificarPermiso("VER_REPORTES")) {
-            cargarVista("/views/reportes/reporte_ventas.fxml");
-        }
+    private void alertasStock() {
+        cargarVista("/fxml/productos/alertas_stock.fxml", "Alertas de Stock");
     }
 
     @FXML
-    private void handleReporteProductos(ActionEvent event) {
-        if (verificarPermiso("VER_REPORTES")) {
-            cargarVista("/views/reportes/reporte_productos.fxml");
-        }
+    private void inventarioFisico() {
+        cargarVista("/fxml/productos/inventario_fisico.fxml", "Inventario Físico");
+    }
+
+    // ================== MÉTODOS DE MENÚ OCR ==================
+    @FXML
+    private void validarOCR() {
+        cargarVista("/fxml/ocr/validar_ocr.fxml", "Validar Comprobantes OCR");
     }
 
     @FXML
-    private void handleReporteStock(ActionEvent event) {
-        if (verificarPermiso("VER_REPORTES")) {
-            cargarVista("/views/reportes/reporte_stock.fxml");
-        }
+    private void historialOCR() {
+        cargarVista("/fxml/ocr/historial_ocr.fxml", "Historial OCR");
     }
 
     @FXML
-    private void handleCambiarPassword(ActionEvent event) {
-        abrirDialogoCambiarPassword();
+    private void configurarOCR() {
+        AlertUtils.showInfo("Información", "Funcionalidad de configuración OCR en desarrollo");
+    }
+
+    // ================== MÉTODOS DE MENÚ REPORTES ==================
+    @FXML
+    private void reporteVentas() {
+        cargarVista("/fxml/reportes/reporte_ventas.fxml", "Reporte de Ventas");
     }
 
     @FXML
-    private void handleConfiguracion(ActionEvent event) {
-        if (verificarPermiso("GESTIONAR_SISTEMA")) {
-            cargarVista("/views/sistema/configuracion.fxml");
-        }
+    private void reporteProductos() {
+        cargarVista("/fxml/reportes/reporte_productos.fxml", "Reporte de Productos");
     }
 
     @FXML
-    private void handleAcercaDe(ActionEvent event) {
-        mostrarAcercaDe();
+    private void reporteInventario() {
+        cargarVista("/fxml/reportes/reporte_inventario.fxml", "Reporte de Inventario");
     }
 
     @FXML
-    private void handleCerrarSesion(ActionEvent event) {
-        if (AlertUtils.mostrarConfirmacion("Cerrar Sesión",
-                "¿Está seguro que desea cerrar la sesión?")) {
-            cerrarSesion();
-        }
+    private void reporteGanancias() {
+        cargarVista("/fxml/reportes/reporte_ganancias.fxml", "Reporte de Ganancias");
     }
 
-    // === MÉTODOS AUXILIARES ===
-
-    private void cargarVista(String rutaFxml) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(rutaFxml));
-            Parent vista = loader.load();
-            mainContainer.setCenter(vista);
-
-            sessionManager.registrarActividad("Navegación a: " + rutaFxml);
-        } catch (IOException e) {
-            AlertUtils.mostrarError("Error de Navegación",
-                    "No se pudo cargar la vista: " + e.getMessage());
-            e.printStackTrace();
-        }
+    // ================== MÉTODOS DE MENÚ ADMINISTRACIÓN ==================
+    @FXML
+    private void gestionarUsuarios() {
+        cargarVista("/fxml/admin/gestionar_usuarios.fxml", "Gestionar Usuarios");
     }
 
-    private boolean verificarPermiso(String permiso) {
-        if (!sessionManager.tienePermiso(permiso)) {
-            AlertUtils.mostrarOperacionNoPermitida(permiso);
-            return false;
-        }
-        return true;
+    @FXML
+    private void configuracionSistema() {
+        cargarVista("/fxml/admin/configuracion.fxml", "Configuración del Sistema");
     }
 
-    private void abrirDialogoCambiarPassword() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dialogs/cambiar_password.fxml"));
-            Parent root = loader.load();
-
-            Stage dialogStage = new Stage();
-            dialogStage.setTitle("Cambiar Contraseña");
-            dialogStage.setScene(new Scene(root));
-            dialogStage.setResizable(false);
-            dialogStage.initOwner(lblUsuario.getScene().getWindow());
-            dialogStage.showAndWait();
-
-        } catch (IOException e) {
-            AlertUtils.mostrarError("Error", "No se pudo abrir el diálogo de cambio de contraseña");
-        }
+    @FXML
+    private void bitacoraAcciones() {
+        cargarVista("/fxml/admin/bitacora.fxml", "Bitácora de Acciones");
     }
 
-    private void mostrarAcercaDe() {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Acerca de Sistema POS");
-        alert.setHeaderText("Sistema de Punto de Venta con OCR");
-        alert.setContentText(
-                "Versión: 1.0.0\n" +
-                        "Desarrollado con JavaFX\n" +
-                        "Base de datos: MySQL\n" +
-                        "OCR: Tesseract\n\n" +
-                        "Sistema completo para gestión de ventas,\n" +
-                        "productos, usuarios y validación de transferencias."
-        );
-        alert.showAndWait();
+    @FXML
+    private void respaldoBD() {
+        cargarVista("/fxml/admin/respaldo_bd.fxml", "Respaldo de Base de Datos");
     }
 
-    private void cerrarSesionPorExpiracion() {
-        Platform.runLater(() -> {
-            AlertUtils.mostrarAdvertencia("Sesión Expirada",
-                    "Su sesión ha expirado por inactividad. Será redirigido al login.");
-            cerrarSesion();
-        });
+    // ================== MÉTODOS DE MENÚ SISTEMA ==================
+    @FXML
+    private void cambiarPassword() {
+        cargarVista("/fxml/sistema/cambiar_password.fxml", "Cambiar Contraseña");
     }
 
+    @FXML
+    private void acercaDe() {
+        AlertUtils.showInfo("Acerca de",
+            "Sistema POS OCR v1.0\n\n" +
+            "Sistema de Punto de Venta con reconocimiento OCR\n" +
+            "para validación de comprobantes de transferencia.\n\n" +
+            "© 2025 - Todos los derechos reservados");
+    }
+
+    @FXML
     private void cerrarSesion() {
-        // Detener timer
-        if (timerReloj != null) {
-            timerReloj.cancel();
+        Optional<ButtonType> resultado = AlertUtils.confirmDialog(
+            "Cerrar Sesión",
+            "¿Está seguro de que desea cerrar la sesión?"
+        );
+
+        if (resultado.isPresent() && resultado.get() == ButtonType.OK) {
+            // Registrar logout en bitácora
+            Usuario usuario = sessionManager.getUsuarioActual();
+            if (usuario != null) {
+                bitacoraDAO.registrarLogout(usuario.getIdUsuario(), "127.0.0.1");
+            }
+
+            // Detener reloj
+            if (clockTimeline != null) {
+                clockTimeline.stop();
+            }
+
+            // Limpiar sesión
+            sessionManager.limpiarSesion();
+
+            // Volver a login
+            try {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/login.fxml"));
+                Scene scene = new Scene(loader.load());
+                Stage stage = (Stage) mainPane.getScene().getWindow();
+                stage.setScene(scene);
+                stage.setTitle("Sistema POS OCR - Login");
+                stage.centerOnScreen();
+            } catch (IOException e) {
+                System.err.println("Error al cargar ventana de login: " + e.getMessage());
+                Platform.exit();
+            }
         }
+    }
 
-        // Cerrar sesión
-        sessionManager.cerrarSesion();
-
-        // Volver al login
+    // ================== MÉTODO AUXILIAR MEJORADO ==================
+    private void cargarVista(String rutaFxml, String titulo) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/login.fxml"));
-            Parent root = loader.load();
+            System.out.println("🔍 DEBUG: Cargando vista en ventana principal: " + rutaFxml);
 
-            Scene scene = new Scene(root);
-            scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+            // Cargar el FXML en el centro de la ventana principal
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(rutaFxml));
+            Node contenido = loader.load();
 
-            Stage stage = new Stage();
-            stage.setTitle("Sistema POS - Login");
-            stage.setScene(scene);
-            stage.setResizable(false);
-            stage.centerOnScreen();
-            stage.show();
+            // Establecer el contenido en el centro del BorderPane principal
+            mainPane.setCenter(contenido);
 
-            // Cerrar ventana principal
-            Stage currentStage = (Stage) lblUsuario.getScene().getWindow();
-            currentStage.close();
+            // Actualizar el título de la ventana solo si la Scene está disponible
+            try {
+                if (mainPane.getScene() != null && mainPane.getScene().getWindow() != null) {
+                    Stage stage = (Stage) mainPane.getScene().getWindow();
+                    stage.setTitle(titulo + " - Sistema POS OCR");
+                } else {
+                    // Si la Scene no está disponible, programar la actualización del título para más tarde
+                    Platform.runLater(() -> {
+                        if (mainPane.getScene() != null && mainPane.getScene().getWindow() != null) {
+                            Stage stage = (Stage) mainPane.getScene().getWindow();
+                            stage.setTitle(titulo + " - Sistema POS OCR");
+                        }
+                    });
+                }
+            } catch (Exception titleException) {
+                System.out.println("⚠️ WARNING: No se pudo actualizar el título de la ventana: " + titleException.getMessage());
+                // No es crítico, continuamos sin actualizar el título
+            }
+
+            System.out.println("✅ DEBUG: Vista cargada exitosamente en ventana principal: " + titulo);
 
         } catch (IOException e) {
-            AlertUtils.mostrarError("Error", "No se pudo volver al login: " + e.getMessage());
-            System.exit(0);
+            System.err.println("❌ ERROR: No se pudo cargar la vista: " + rutaFxml);
+            e.printStackTrace();
+            AlertUtils.showError("Error",
+                "No se pudo cargar la vista solicitada.\n" +
+                "Vista: " + titulo + "\n" +
+                "Error: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("❌ ERROR inesperado al cargar vista: " + e.getMessage());
+            e.printStackTrace();
+            AlertUtils.showError("Error", "Error inesperado: " + e.getMessage());
         }
+    }
+
+    // ================== MÉTODO CARGAR PANTALLA BIENVENIDA ==================
+    private void cargarPantallaBienvenida() {
+        // Cargar la vista de bienvenida (splash screen) al iniciar el sistema
+        cargarVista("/fxml/bienvenida.fxml", "Bienvenida");
     }
 }

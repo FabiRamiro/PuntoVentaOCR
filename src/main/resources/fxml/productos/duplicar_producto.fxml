@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<DialogPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pos.puntoventaocr.controllers.DuplicarProductoController">
+   <header>
+      <Label style="-fx-font-size: 16px; -fx-font-weight: bold;" text="Duplicar Producto" />
+   </header>
+
+   <content>
+      <VBox prefWidth="450.0" spacing="15.0">
+         <padding>
+            <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+         </padding>
+
+         <!-- Información del producto original -->
+         <VBox spacing="10.0">
+            <children>
+               <Label style="-fx-font-weight: bold;" text="Producto Original" />
+               <Separator />
+               <Label fx:id="lblProductoOriginal" style="-fx-font-size: 14px;" text="Nombre del producto original" />
+               <Label fx:id="lblInfoOriginal" style="-fx-font-size: 12px; -fx-text-fill: #6c757d;" text="Información adicional" />
+            </children>
+         </VBox>
+
+         <!-- Datos para el producto duplicado -->
+         <VBox spacing="10.0">
+            <children>
+               <Label style="-fx-font-weight: bold;" text="Datos del Producto Duplicado" />
+               <Separator />
+
+               <GridPane hgap="10.0" vgap="10.0">
+                  <columnConstraints>
+                     <ColumnConstraints halignment="RIGHT" minWidth="120.0" />
+                     <ColumnConstraints hgrow="ALWAYS" minWidth="250.0" />
+                  </columnConstraints>
+
+                  <Label text="Nuevo Nombre:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                  <TextField fx:id="txtNuevoNombre" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+                  <Label text="Nuevo Código:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                  <TextField fx:id="txtNuevoCodigo" promptText="Dejar vacío para auto-generar" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+                  <Label text="Nueva Marca:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                  <TextField fx:id="txtNuevaMarca" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+                  <Label text="Categoría:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                  <ComboBox fx:id="cmbNuevaCategoria" prefWidth="250.0" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+               </GridPane>
+            </children>
+         </VBox>
+
+         <!-- Opciones de duplicación -->
+         <VBox spacing="10.0">
+            <children>
+               <Label style="-fx-font-weight: bold;" text="Opciones de Duplicación" />
+               <Separator />
+               <CheckBox fx:id="chkCopiarPrecios" selected="true" text="Copiar precios del producto original" />
+               <CheckBox fx:id="chkCopiarStock" text="Copiar stock del producto original" />
+               <CheckBox fx:id="chkCopiarDescripciones" selected="true" text="Copiar descripciones del producto original" />
+               <CheckBox fx:id="chkCopiarImagen" selected="true" text="Copiar imagen del producto original" />
+            </children>
+         </VBox>
+
+         <!-- Stock inicial si no se copia -->
+         <VBox fx:id="panelStockManual" spacing="10.0">
+            <children>
+               <Label style="-fx-font-weight: bold;" text="Stock Inicial" />
+               <Separator />
+               <TextField fx:id="txtStockInicial" promptText="0" text="0" />
+            </children>
+         </VBox>
+      </VBox>
+   </content>
+
+   <buttonTypes>
+      <ButtonType fx:constant="OK" />
+      <ButtonType fx:constant="CANCEL" />
+   </buttonTypes>
+</DialogPane>

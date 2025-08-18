@@ -2,261 +2,202 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
-<?import javafx.scene.image.*?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.text.*?>
 
-<BorderPane xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pos.puntoventaocr.controllers.ValidarOCRController">
-    <top>
-        <!-- Título y filtros -->
-        <VBox>
-            <children>
-                <HBox alignment="CENTER_LEFT" styleClass="card-header">
-                    <children>
-                        <Label styleClass="label-title" text="Validación de Comprobantes OCR">
-                            <font>
-                                <Font name="System Bold" size="20.0" />
-                            </font>
-                        </Label>
-                    </children>
-                    <padding>
-                        <Insets bottom="10.0" left="15.0" right="15.0" top="10.0" />
-                    </padding>
-                </HBox>
+<ScrollPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pos.puntoventaocr.controllers.ValidarOCRController" fitToWidth="true" fitToHeight="true" hbarPolicy="AS_NEEDED" vbarPolicy="AS_NEEDED">
+   <content>
+      <VBox spacing="10.0" style="-fx-padding: 10;">
+         <children>
+            <!-- Título -->
+            <HBox alignment="CENTER_LEFT" style="-fx-background-color: #f8f9fa; -fx-padding: 15;">
+               <children>
+                  <Label style="-fx-font-size: 20px; -fx-font-weight: bold;" text="Validación de Comprobantes OCR" />
+               </children>
+            </HBox>
 
-                <!-- Filtros -->
-                <HBox alignment="CENTER_LEFT" spacing="15.0" styleClass="toolbar-pane">
-                    <children>
-                        <Label text="Estado:" />
-                        <ComboBox fx:id="cmbFiltroEstado" prefWidth="120.0" />
+            <!-- Panel de carga y procesamiento -->
+            <VBox spacing="15.0" style="-fx-padding: 15; -fx-border-color: #dee2e6; -fx-border-radius: 5;">
+               <children>
+                  <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="1. Cargar Comprobante de Transferencia" />
+                  <Separator />
 
-                        <Label text="Referencia:" />
-                        <TextField fx:id="txtFiltroReferencia" prefWidth="150.0" promptText="Buscar por referencia..." />
+                  <HBox alignment="CENTER_LEFT" spacing="15.0" style="-fx-padding: 10;">
+                     <children>
+                        <VBox spacing="10.0">
+                           <children>
+                              <Label text="Seleccionar archivo:" />
+                              <HBox spacing="10.0">
+                                 <children>
+                                    <TextField fx:id="txtRutaArchivo" editable="false" prefWidth="300.0" promptText="Seleccione imagen del comprobante..." />
+                                    <Button fx:id="btnSeleccionarArchivo" onAction="#seleccionarArchivo" text="Examinar..." />
+                                 </children>
+                              </HBox>
+                              <Label style="-fx-text-fill: #6c757d; -fx-font-size: 11px;" text="Formatos soportados: JPG, PNG, PDF" />
+                           </children>
+                        </VBox>
 
-                        <Region HBox.hgrow="ALWAYS" />
+                        <VBox alignment="CENTER" spacing="10.0">
+                           <children>
+                              <Button fx:id="btnProcesarOCR" disable="true" onAction="#procesarOCR" style="-fx-background-color: #007bff; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 12;" text="Procesar con OCR" />
+                              <ProgressIndicator fx:id="progressOCR" prefHeight="40.0" prefWidth="40.0" visible="false" />
+                              <Label fx:id="lblEstadoProceso" text="" />
+                           </children>
+                        </VBox>
+                     </children>
+                  </HBox>
 
-                        <Button fx:id="btnNuevoComprobante" onAction="#handleNuevoComprobante" styleClass="btn-primary" text="Nuevo Comprobante" />
-                    </children>
-                    <padding>
-                        <Insets bottom="10.0" left="15.0" right="15.0" top="10.0" />
-                    </padding>
-                </HBox>
-            </children>
-        </VBox>
-    </top>
-
-    <center>
-        <SplitPane dividerPositions="0.5" orientation="HORIZONTAL">
-            <items>
-                <!-- Panel izquierdo - Lista de comprobantes -->
-                <VBox styleClass="content-pane">
-                    <children>
-                        <Label styleClass="label-section" text="Comprobantes Pendientes" />
-
-                        <TableView fx:id="tableComprobantes" VBox.vgrow="ALWAYS">
-                            <columns>
-                                <TableColumn fx:id="colNumeroVenta" prefWidth="100.0" text="# Venta" />
-                                <TableColumn fx:id="colReferencia" prefWidth="120.0" text="Referencia" />
-                                <TableColumn fx:id="colMonto" prefWidth="80.0" text="Monto" />
-                                <TableColumn fx:id="colBanco" prefWidth="100.0" text="Banco" />
-                                <TableColumn fx:id="colEstado" prefWidth="80.0" text="Estado" />
-                                <TableColumn fx:id="colFecha" prefWidth="120.0" text="Fecha" />
-                            </columns>
-                        </TableView>
-                    </children>
-                </VBox>
-
-                <!-- Panel derecho - Validación OCR -->
-                <VBox styleClass="form-pane">
-                    <children>
-                        <Label styleClass="label-section" text="Validación de Comprobante" />
-
-                        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS">
-                            <content>
-                                <VBox spacing="15.0">
-                                    <children>
-                                        <!-- Imagen del comprobante -->
-                                        <VBox alignment="CENTER" spacing="10.0" styleClass="card">
-                                            <children>
-                                                <Label styleClass="label-subtitle" text="Comprobante" />
-                                                <ImageView fx:id="imgComprobante" fitHeight="200.0" fitWidth="300.0" pickOnBounds="true" preserveRatio="true">
-                                                    <image>
-                                                        <Image url="@../images/comprobante_default.png" />
-                                                    </image>
-                                                </ImageView>
-                                                <HBox alignment="CENTER" spacing="10.0">
-                                                    <children>
-                                                        <Button fx:id="btnCargarImagen" onAction="#handleCargarImagen" styleClass="btn-secondary" text="Cargar Imagen" />
-                                                        <Button fx:id="btnProcesarOCR" onAction="#handleProcesarOCR" styleClass="btn-primary" text="Procesar OCR" />
-                                                    </children>
-                                                </HBox>
-                                            </children>
-                                            <padding>
-                                                <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
-                                            </padding>
-                                        </VBox>
-
-                                        <!-- Información de la venta -->
-                                        <VBox spacing="10.0" styleClass="card">
-                                            <children>
-                                                <Label styleClass="label-subtitle" text="Información de la Venta" />
-
-                                                <VBox spacing="5.0">
-                                                    <children>
-                                                        <Label text="Número de Venta:" />
-                                                        <TextField fx:id="txtNumeroVenta" editable="false" />
-                                                    </children>
-                                                </VBox>
-
-                                                <HBox spacing="10.0">
-                                                    <children>
-                                                        <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                                                            <children>
-                                                                <Label text="Total de Venta:" />
-                                                                <Label fx:id="lblTotalVenta" styleClass="label-success" text="$0.00">
-                                                                    <font>
-                                                                        <Font name="System Bold" size="14.0" />
-                                                                    </font>
-                                                                </Label>
-                                                            </children>
-                                                        </VBox>
-
-                                                        <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                                                            <children>
-                                                                <Label text="Fecha de Venta:" />
-                                                                <Label fx:id="lblFechaVenta" styleClass="label-info" text="-" />
-                                                            </children>
-                                                        </VBox>
-                                                    </children>
-                                                </HBox>
-
-                                                <VBox spacing="5.0">
-                                                    <children>
-                                                        <Label text="Usuario que realizó la venta:" />
-                                                        <Label fx:id="lblUsuarioVenta" styleClass="label-info" text="-" />
-                                                    </children>
-                                                </VBox>
-                                            </children>
-                                            <padding>
-                                                <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
-                                            </padding>
-                                        </VBox>
-
-                                        <!-- Datos extraídos por OCR -->
-                                        <VBox spacing="10.0" styleClass="card">
-                                            <children>
-                                                <Label styleClass="label-subtitle" text="Datos del Comprobante (OCR)" />
-
-                                                <VBox spacing="5.0">
-                                                    <children>
-                                                        <Label text="Banco Emisor:" />
-                                                        <TextField fx:id="txtBancoEmisor" promptText="Nombre del banco" />
-                                                    </children>
-                                                </VBox>
-
-                                                <VBox spacing="5.0">
-                                                    <children>
-                                                        <Label text="Cuenta Remitente:" />
-                                                        <TextField fx:id="txtCuentaRemitente" promptText="****1234" />
-                                                    </children>
-                                                </VBox>
-
-                                                <HBox spacing="10.0">
-                                                    <children>
-                                                        <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                                                            <children>
-                                                                <Label text="Monto Detectado:" />
-                                                                <TextField fx:id="txtMonto" promptText="0.00" />
-                                                            </children>
-                                                        </VBox>
-
-                                                        <VBox spacing="5.0" HBox.hgrow="ALWAYS">
-                                                            <children>
-                                                                <Label text="Fecha de Transferencia:" />
-                                                                <DatePicker fx:id="dpFechaTransferencia" maxWidth="1.7976931348623157E308" />
-                                                            </children>
-                                                        </VBox>
-                                                    </children>
-                                                </HBox>
-
-                                                <VBox spacing="5.0">
-                                                    <children>
-                                                        <Label text="Referencia de Operación:" />
-                                                        <TextField fx:id="txtReferencia" promptText="ABC123DEF456" />
-                                                    </children>
-                                                </VBox>
-
-                                                <VBox spacing="5.0">
-                                                    <children>
-                                                        <Label text="Nombre del Beneficiario:" />
-                                                        <TextField fx:id="txtBeneficiario" promptText="Nombre del beneficiario" />
-                                                    </children>
-                                                </VBox>
-                                            </children>
-                                            <padding>
-                                                <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
-                                            </padding>
-                                        </VBox>
-
-                                        <!-- Estado de validación -->
-                                        <VBox spacing="10.0" styleClass="card">
-                                            <children>
-                                                <Label styleClass="label-subtitle" text="Estado de Validación" />
-
-                                                <HBox>
-                                                    <children>
-                                                        <Label text="Estado actual:" />
-                                                        <Region HBox.hgrow="ALWAYS" />
-                                                        <Label fx:id="lblEstadoValidacion" styleClass="estado-pendiente" text="PENDIENTE" />
-                                                    </children>
-                                                </HBox>
-
-                                                <VBox spacing="5.0">
-                                                    <children>
-                                                        <Label text="Observaciones:" />
-                                                        <TextArea fx:id="txtObservaciones" maxHeight="80.0" promptText="Observaciones sobre la validación..." />
-                                                    </children>
-                                                </VBox>
-                                            </children>
-                                            <padding>
-                                                <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
-                                            </padding>
-                                        </VBox>
-
-                                        <!-- Botones de acción -->
-                                        <VBox spacing="10.0">
-                                            <children>
-                                                <HBox alignment="CENTER" spacing="10.0">
-                                                    <children>
-                                                        <Button fx:id="btnValidar" onAction="#handleValidar" styleClass="btn-success" text="✓ VALIDAR">
-                                                            <font>
-                                                                <Font name="System Bold" size="14.0" />
-                                                            </font>
-                                                        </Button>
-                                                        <Button fx:id="btnRechazar" onAction="#handleRechazar" styleClass="btn-danger" text="✗ RECHAZAR">
-                                                            <font>
-                                                                <Font name="System Bold" size="14.0" />
-                                                            </font>
-                                                        </Button>
-                                                    </children>
-                                                </HBox>
-
-                                                <Button fx:id="btnGuardarCambios" maxWidth="1.7976931348623157E308" onAction="#handleGuardarCambios" styleClass="btn-primary" text="Guardar Cambios" />
-                                            </children>
-                                            <VBox.margin>
-                                                <Insets top="10.0" />
-                                            </VBox.margin>
-                                        </VBox>
-                                    </children>
-                                    <padding>
-                                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                                    </padding>
-                                </VBox>
-                            </content>
+                  <!-- Vista previa de la imagen -->
+                  <VBox alignment="CENTER" spacing="10.0">
+                     <children>
+                        <Label style="-fx-font-weight: bold;" text="Vista Previa del Comprobante" />
+                        <ScrollPane fitToHeight="true" fitToWidth="true" prefHeight="400.0" prefWidth="800.0" style="-fx-border-color: #dee2e6;">
+                           <content>
+                              <ImageView fx:id="imgComprobante" fitHeight="380.0" fitWidth="780.0" pickOnBounds="true" preserveRatio="true" smooth="true" style="-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6;" />
+                           </content>
                         </ScrollPane>
-                    </children>
-                </VBox>
-            </items>
-        </SplitPane>
-    </center>
-</BorderPane>
+                        <HBox alignment="CENTER" spacing="10.0">
+                           <children>
+                              <Button fx:id="btnZoomIn" onAction="#aumentarZoom" text="Zoom +" style="-fx-background-color: #28a745; -fx-text-fill: white;" />
+                              <Button fx:id="btnZoomOut" onAction="#reducirZoom" text="Zoom -" style="-fx-background-color: #ffc107; -fx-text-fill: white;" />
+                              <Button fx:id="btnZoomReset" onAction="#resetearZoom" text="Tamaño Original" style="-fx-background-color: #17a2b8; -fx-text-fill: white;" />
+                              <Button fx:id="btnVerCompleta" onAction="#verImagenCompleta" text="Ver Imagen Completa" style="-fx-background-color: #6f42c1; -fx-text-fill: white;" />
+                           </children>
+                        </HBox>
+                     </children>
+                  </VBox>
+               </children>
+            </VBox>
+
+            <!-- Panel de datos extraídos y validación -->
+            <VBox spacing="15.0" style="-fx-padding: 15; -fx-border-color: #dee2e6; -fx-border-radius: 5;">
+               <children>
+                  <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="2. Datos Extraídos y Validación" />
+                  <Separator />
+
+                  <HBox spacing="20.0">
+                     <children>
+                        <!-- Formulario de datos extraídos -->
+                        <VBox spacing="15.0" HBox.hgrow="ALWAYS">
+                           <children>
+                              <Label style="-fx-font-weight: bold;" text="Datos Extraídos del Comprobante" />
+
+                              <GridPane hgap="10.0" vgap="10.0">
+                                 <columnConstraints>
+                                    <ColumnConstraints hgrow="NEVER" minWidth="120.0" />
+                                    <ColumnConstraints hgrow="ALWAYS" />
+                                 </columnConstraints>
+
+                                 <children>
+                                    <Label text="Banco Emisor:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                                    <TextField fx:id="txtBancoEmisor" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+                                    <Label text="Referencia:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                                    <TextField fx:id="txtReferencia" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+                                    <Label text="Monto:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                                    <TextField fx:id="txtMonto" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+                                    <Label text="Fecha:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                                    <DatePicker fx:id="dpFecha" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+
+                                    <Label text="Cuenta Remitente:" GridPane.columnIndex="0" GridPane.rowIndex="4" />
+                                    <TextField fx:id="txtCuentaRemitente" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+
+                                    <Label text="Beneficiario:" GridPane.columnIndex="0" GridPane.rowIndex="5" />
+                                    <TextField fx:id="txtBeneficiario" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+                                 </children>
+                              </GridPane>
+
+                              <HBox spacing="10.0">
+                                 <children>
+                                    <Button fx:id="btnLimpiarFormulario" onAction="#limpiarFormulario" text="Limpiar" />
+                                 </children>
+                              </HBox>
+                           </children>
+                        </VBox>
+
+                        <!-- Panel de validación -->
+                        <VBox spacing="15.0" HBox.hgrow="ALWAYS">
+                           <children>
+                              <Label style="-fx-font-weight: bold;" text="Validación Automática" />
+
+                              <!-- Indicadores de validación -->
+                              <VBox spacing="8.0">
+                                 <children>
+                                    <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                       <children>
+                                          <Label fx:id="lblValidacionMonto" style="-fx-font-size: 20px;" text="⏳" />
+                                          <Label fx:id="txtValidacionMonto" text="Validando monto con venta..." />
+                                       </children>
+                                    </HBox>
+
+                                    <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                       <children>
+                                          <Label fx:id="lblValidacionFecha" style="-fx-font-size: 20px;" text="⏳" />
+                                          <Label fx:id="txtValidacionFecha" text="Validando fecha de transferencia..." />
+                                       </children>
+                                    </HBox>
+
+                                    <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                       <children>
+                                          <Label fx:id="lblValidacionReferencia" style="-fx-font-size: 20px;" text="⏳" />
+                                          <Label fx:id="txtValidacionReferencia" text="Verificando referencia única..." />
+                                       </children>
+                                    </HBox>
+                                 </children>
+                              </VBox>
+
+                              <Separator />
+
+                              <!-- Búsqueda de venta asociada -->
+                              <VBox spacing="10.0">
+                                 <children>
+                                    <Label style="-fx-font-weight: bold;" text="Asociar con Venta" />
+                                    <HBox spacing="10.0">
+                                       <children>
+                                          <TextField fx:id="txtBuscarVenta" prefWidth="150.0" promptText="Número de venta..." />
+                                          <Button fx:id="btnBuscarVenta" onAction="#buscarVenta" text="Buscar" />
+                                       </children>
+                                    </HBox>
+                                    <Label fx:id="lblVentaEncontrada" text="" />
+                                 </children>
+                              </VBox>
+
+                              <Separator />
+
+                              <!-- Observaciones -->
+                              <VBox spacing="5.0">
+                                 <children>
+                                    <Label style="-fx-font-weight: bold;" text="Observaciones" />
+                                    <TextArea fx:id="txtObservaciones" prefHeight="80.0" promptText="Agregue observaciones sobre la validación..." />
+                                 </children>
+                              </VBox>
+                           </children>
+                        </VBox>
+                     </children>
+                  </HBox>
+
+                  <!-- Botones de acción principales - Siempre visibles al final -->
+                  <Separator />
+                  <HBox alignment="CENTER" spacing="15.0" style="-fx-padding: 10; -fx-background-color: #f8f9fa;">
+                     <children>
+                        <Button fx:id="btnValidar" disable="true" onAction="#validarComprobante" style="-fx-background-color: #28a745; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px; -fx-padding: 12 20;" text="✓ Validar Comprobante" />
+                        <Button fx:id="btnRechazar" disable="true" onAction="#rechazarComprobante" style="-fx-background-color: #dc3545; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px; -fx-padding: 12 20;" text="✗ Rechazar Comprobante" />
+                     </children>
+                  </HBox>
+               </children>
+            </VBox>
+
+            <!-- Barra de estado -->
+            <ToolBar style="-fx-background-color: #e9ecef;">
+               <items>
+                  <Label fx:id="lblEstadoGeneral" text="Listo para procesar comprobantes" />
+                  <Region HBox.hgrow="ALWAYS" />
+                  <Label fx:id="lblTiempoProcesamientoOCR" text="" />
+               </items>
+            </ToolBar>
+         </children>
+      </VBox>
+   </content>
+</ScrollPane>

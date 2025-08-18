@@ -6,18 +6,20 @@ public class DetalleVenta {
     private int idDetalle;
     private Venta venta;
     private Producto producto;
-    private int cantidad;
+    private BigDecimal cantidad;
     private BigDecimal precioUnitario;
     private BigDecimal subtotal;
     private BigDecimal descuento;
 
     // Constructor vacío
     public DetalleVenta() {
+        this.cantidad = BigDecimal.ONE;
         this.descuento = BigDecimal.ZERO;
+        this.subtotal = BigDecimal.ZERO;
     }
 
-    // Constructor con parámetros
-    public DetalleVenta(Producto producto, int cantidad) {
+    // Constructor con parámetros básicos
+    public DetalleVenta(Producto producto, BigDecimal cantidad) {
         this();
         this.producto = producto;
         this.cantidad = cantidad;
@@ -25,8 +27,10 @@ public class DetalleVenta {
         calcularSubtotal();
     }
 
-    public DetalleVenta(Producto producto, int cantidad, BigDecimal precioUnitario) {
+    // Constructor completo
+    public DetalleVenta(Venta venta, Producto producto, BigDecimal cantidad, BigDecimal precioUnitario) {
         this();
+        this.venta = venta;
         this.producto = producto;
         this.cantidad = cantidad;
         this.precioUnitario = precioUnitario;
@@ -35,25 +39,26 @@ public class DetalleVenta {
 
     // Métodos de negocio
     public void calcularSubtotal() {
-        BigDecimal total = precioUnitario.multiply(BigDecimal.valueOf(cantidad));
-        this.subtotal = total.subtract(descuento);
+        if (cantidad != null && precioUnitario != null) {
+            BigDecimal total = cantidad.multiply(precioUnitario);
+            this.subtotal = total.subtract(descuento);
+        }
     }
 
     public void aplicarDescuento(BigDecimal descuento) {
-        this.descuento = descuento;
+        this.descuento = descuento != null ? descuento : BigDecimal.ZERO;
         calcularSubtotal();
     }
 
-    public BigDecimal getSubtotalSinDescuento() {
-        return precioUnitario.multiply(BigDecimal.valueOf(cantidad));
+    public BigDecimal calcularTotalSinDescuento() {
+        if (cantidad != null && precioUnitario != null) {
+            return cantidad.multiply(precioUnitario);
+        }
+        return BigDecimal.ZERO;
     }
 
-    public double getPorcentajeDescuento() {
-        if (getSubtotalSinDescuento().compareTo(BigDecimal.ZERO) > 0) {
-            return descuento.divide(getSubtotalSinDescuento(), 4, BigDecimal.ROUND_HALF_UP)
-                    .multiply(BigDecimal.valueOf(100)).doubleValue();
-        }
-        return 0.0;
+    public boolean tieneDescuento() {
+        return descuento != null && descuento.compareTo(BigDecimal.ZERO) > 0;
     }
 
     // Getters y Setters
@@ -79,13 +84,17 @@ public class DetalleVenta {
 
     public void setProducto(Producto producto) {
         this.producto = producto;
+        if (producto != null && this.precioUnitario == null) {
+            this.precioUnitario = producto.getPrecioVenta();
+        }
+        calcularSubtotal();
     }
 
-    public int getCantidad() {
+    public BigDecimal getCantidad() {
         return cantidad;
     }
 
-    public void setCantidad(int cantidad) {
+    public void setCantidad(BigDecimal cantidad) {
         this.cantidad = cantidad;
         calcularSubtotal();
     }
@@ -118,6 +127,21 @@ public class DetalleVenta {
 
     @Override
     public String toString() {
-        return producto.getNombre() + " x" + cantidad + " = $" + subtotal;
+        return String.format("DetalleVenta{producto='%s', cantidad=%.2f, precio=%.2f, subtotal=%.2f}",
+                producto != null ? producto.getNombre() : "Sin producto",
+                cantidad, precioUnitario, subtotal);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        DetalleVenta detalle = (DetalleVenta) obj;
+        return idDetalle == detalle.idDetalle;
+    }
+
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(idDetalle);
     }
 }

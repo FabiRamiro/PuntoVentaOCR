@@ -7,32 +7,19 @@ import javafx.stage.Stage;
 
 import java.util.Optional;
 
+/**
+ * Utilidad para mostrar diferentes tipos de alertas y diálogos en la aplicación
+ */
 public class AlertUtils {
-
-    /**
-     * Muestra una alerta de error
-     */
-    public static void mostrarError(String titulo, String mensaje) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(titulo);
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-
-        // Configurar el ícono de la ventana
-        Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
-        stage.getIcons().clear();
-
-        alert.showAndWait();
-    }
 
     /**
      * Muestra una alerta de información
      */
-    public static void mostrarInformacion(String titulo, String mensaje) {
+    public static void showInfo(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(titulo);
+        alert.setTitle(title);
         alert.setHeaderText(null);
-        alert.setContentText(mensaje);
+        alert.setContentText(message);
 
         Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
         stage.getIcons().clear();
@@ -43,11 +30,26 @@ public class AlertUtils {
     /**
      * Muestra una alerta de advertencia
      */
-    public static void mostrarAdvertencia(String titulo, String mensaje) {
+    public static void showWarning(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.WARNING);
-        alert.setTitle(titulo);
+        alert.setTitle(title);
         alert.setHeaderText(null);
-        alert.setContentText(mensaje);
+        alert.setContentText(message);
+
+        Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
+        stage.getIcons().clear();
+
+        alert.showAndWait();
+    }
+
+    /**
+     * Muestra una alerta de error
+     */
+    public static void showError(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
 
         Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
         stage.getIcons().clear();
@@ -58,33 +60,11 @@ public class AlertUtils {
     /**
      * Muestra una alerta de confirmación
      */
-    public static boolean mostrarConfirmacion(String titulo, String mensaje) {
+    public static Optional<ButtonType> showConfirmation(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle(titulo);
+        alert.setTitle(title);
         alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-
-        Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
-        stage.getIcons().clear();
-
-        Optional<ButtonType> result = alert.showAndWait();
-        return result.isPresent() && result.get() == ButtonType.OK;
-    }
-
-    /**
-     * Muestra una alerta de confirmación personalizada
-     */
-    public static Optional<ButtonType> mostrarConfirmacionPersonalizada(String titulo, String mensaje,
-                                                                        String textoBotonOK, String textoBotonCancel) {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle(titulo);
-        alert.setHeaderText(null);
-        alert.setContentText(mensaje);
-
-        // Personalizar botones
-        ButtonType botonOK = new ButtonType(textoBotonOK);
-        ButtonType botonCancel = new ButtonType(textoBotonCancel);
-        alert.getButtonTypes().setAll(botonOK, botonCancel);
+        alert.setContentText(message);
 
         Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
         stage.getIcons().clear();
@@ -93,13 +73,36 @@ public class AlertUtils {
     }
 
     /**
+     * Muestra un diálogo de confirmación simple que retorna true/false
+     */
+    public static boolean showConfirmationDialog(String title, String message) {
+        Optional<ButtonType> result = showConfirmation(title, message);
+        return result.isPresent() && result.get() == ButtonType.OK;
+    }
+
+    /**
+     * Muestra una alerta de éxito
+     */
+    public static void showSuccess(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+
+        Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
+        stage.getIcons().clear();
+
+        alert.showAndWait();
+    }
+
+    /**
      * Muestra un diálogo de entrada de texto
      */
-    public static Optional<String> mostrarDialogoTexto(String titulo, String mensaje, String textoDefecto) {
-        TextInputDialog dialog = new TextInputDialog(textoDefecto);
-        dialog.setTitle(titulo);
+    public static Optional<String> showTextDialog(String title, String message, String defaultText) {
+        TextInputDialog dialog = new TextInputDialog(defaultText);
+        dialog.setTitle(title);
         dialog.setHeaderText(null);
-        dialog.setContentText(mensaje);
+        dialog.setContentText(message);
 
         Stage stage = (Stage) dialog.getDialogPane().getScene().getWindow();
         stage.getIcons().clear();
@@ -108,73 +111,44 @@ public class AlertUtils {
     }
 
     /**
-     * Muestra un diálogo simple de entrada de texto
+     * Alias en español para mostrar información
      */
-    public static Optional<String> mostrarDialogoTexto(String titulo, String mensaje) {
-        return mostrarDialogoTexto(titulo, mensaje, "");
+    public static void mostrarInformacion(String title, String message) {
+        showInfo(title, message);
     }
 
     /**
-     * Muestra una alerta de éxito
+     * Alias en español para mostrar error
      */
-    public static void mostrarExito(String titulo, String mensaje) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(titulo);
-        alert.setHeaderText("Operación Exitosa");
-        alert.setContentText(mensaje);
-
-        Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
-        stage.getIcons().clear();
-
-        alert.showAndWait();
+    public static void mostrarError(String title, String message) {
+        showError(title, message);
     }
 
     /**
-     * Muestra una alerta con detalles expandibles
+     * Alias en español para mostrar diálogo de texto
      */
-    public static void mostrarErrorConDetalles(String titulo, String mensaje, String detalles) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(titulo);
-        alert.setHeaderText(mensaje);
-        alert.setContentText("Haga clic en 'Mostrar Detalles' para ver más información.");
-
-        // Crear el contenido expandible
-        javafx.scene.control.TextArea textArea = new javafx.scene.control.TextArea(detalles);
-        textArea.setEditable(false);
-        textArea.setWrapText(true);
-        textArea.setMaxWidth(Double.MAX_VALUE);
-        textArea.setMaxHeight(Double.MAX_VALUE);
-
-        alert.getDialogPane().setExpandableContent(textArea);
-
-        Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
-        stage.getIcons().clear();
-
-        alert.showAndWait();
+    public static Optional<String> mostrarDialogoTexto(String title, String message, String defaultText) {
+        return showTextDialog(title, message, defaultText);
     }
 
     /**
-     * Muestra una alerta de validación
+     * Método de confirmación que devuelve boolean directamente
      */
-    public static void mostrarErrorValidacion(String titulo, String campo, String tipoError) {
-        String mensaje = String.format("Error en el campo '%s': %s", campo, tipoError);
-        mostrarError(titulo, mensaje);
+    public static boolean showConfirmationBoolean(String title, String message) {
+        return showConfirmationDialog(title, message);
     }
 
     /**
-     * Muestra una alerta de operación no permitida
+     * Alias para confirmDialog (mantener compatibilidad)
      */
-    public static void mostrarOperacionNoPermitida(String operacion) {
-        mostrarAdvertencia("Operación No Permitida",
-                "No tiene permisos suficientes para realizar la operación: " + operacion);
+    public static Optional<ButtonType> confirmDialog(String title, String message) {
+        return showConfirmation(title, message);
     }
 
     /**
-     * Muestra una alerta de conexión perdida
+     * Método para mostrar diálogo de entrada de texto (alias)
      */
-    public static void mostrarErrorConexion() {
-        mostrarError("Error de Conexión",
-                "Se ha perdido la conexión con la base de datos.\n" +
-                        "Verifique su conexión a internet y vuelva a intentar.");
+    public static Optional<String> showInputDialog(String title, String message, String defaultText) {
+        return showTextDialog(title, message, defaultText);
     }
 }

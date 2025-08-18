@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pos.puntoventaocr.controllers.GestionarCategoriasController">
+   <children>
+      <!-- Título -->
+      <HBox alignment="CENTER_LEFT" style="-fx-background-color: #f8f9fa; -fx-padding: 15;">
+         <children>
+            <Label style="-fx-font-size: 20px; -fx-font-weight: bold;" text="Gestión de Categorías" />
+         </children>
+      </HBox>
+
+      <!-- Barra de herramientas -->
+      <ToolBar style="-fx-background-color: white;">
+         <items>
+            <Button fx:id="btnNueva" onAction="#nuevaCategoria" style="-fx-background-color: #28a745; -fx-text-fill: white;" text="Nueva Categoría" />
+            <Button fx:id="btnEditar" disable="true" onAction="#editarCategoria" style="-fx-background-color: #007bff; -fx-text-fill: white;" text="Editar" />
+            <Button fx:id="btnEliminar" disable="true" onAction="#eliminarCategoria" style="-fx-background-color: #dc3545; -fx-text-fill: white;" text="Eliminar" />
+            <Button fx:id="btnActivar" disable="true" onAction="#activarDesactivarCategoria" style="-fx-background-color: #ffc107; -fx-text-fill: black;" text="Activar" />
+            <Separator orientation="VERTICAL" />
+            <Button fx:id="btnActualizar" onAction="#actualizarTabla" text="Actualizar" />
+            <Separator orientation="VERTICAL" />
+            <CheckBox fx:id="chkMostrarInactivas" text="Mostrar Inactivas" />
+         </items>
+      </ToolBar>
+
+      <!-- Lista de categorías -->
+      <TableView fx:id="tablaCategorias" VBox.vgrow="ALWAYS">
+         <columns>
+            <TableColumn fx:id="colId" prefWidth="80.0" text="ID" />
+            <TableColumn fx:id="colNombre" prefWidth="200.0" text="Nombre" />
+            <TableColumn fx:id="colDescripcion" prefWidth="250.0" text="Descripción" />
+            <TableColumn fx:id="colProductos" prefWidth="100.0" text="Productos" />
+            <TableColumn fx:id="colEstado" prefWidth="100.0" text="Estado" />
+         </columns>
+      </TableView>
+
+      <!-- Barra de estado -->
+      <ToolBar style="-fx-background-color: #e9ecef;">
+         <items>
+            <Label fx:id="lblTotalCategorias" text="Total categorías: 0" />
+            <Separator orientation="VERTICAL" />
+            <Label text="Doble clic en una fila para editar" style="-fx-text-fill: #6c757d;" />
+         </items>
+      </ToolBar>
+   </children>
+</VBox>

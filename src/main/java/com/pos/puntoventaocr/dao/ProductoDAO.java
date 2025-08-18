@@ -1,8 +1,8 @@
 package com.pos.puntoventaocr.dao;
 
 import com.pos.puntoventaocr.config.DatabaseConnection;
-import com.pos.puntoventaocr.models.Producto;
 import com.pos.puntoventaocr.models.Categoria;
+import com.pos.puntoventaocr.models.Producto;
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -10,357 +10,435 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ProductoDAO {
-    private CategoriaDAO categoriaDAO;
 
-    public ProductoDAO() {
-        this.categoriaDAO = new CategoriaDAO();
-    }
-
-    // Crear nuevo producto
-    public boolean crear(Producto producto) {
-        String sql = "INSERT INTO productos (nombre, descripcion_corta, descripcion_larga, ruta_imagen, " +
-                "precio_compra, precio_venta, cantidad_stock, unidad_medida, id_categoria, " +
-                "codigo_barras, estado, stock_minimo, creado_por) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    public boolean guardar(Producto producto) {
+        String sql = "INSERT INTO productos (codigo_barras, codigo_interno, nombre, descripcion_corta, " +
+                    "descripcion_larga, id_categoria, marca, precio_compra, precio_venta, stock, " +
+                    "stock_minimo, unidad_medida, imagen, estado, creado_por) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-            pstmt.setString(1, producto.getNombre());
-            pstmt.setString(2, producto.getDescripcionCorta());
-            pstmt.setString(3, producto.getDescripcionLarga());
-            pstmt.setString(4, producto.getRutaImagen());
-            pstmt.setBigDecimal(5, producto.getPrecioCompra());
-            pstmt.setBigDecimal(6, producto.getPrecioVenta());
-            pstmt.setInt(7, producto.getCantidadStock());
-            pstmt.setString(8, producto.getUnidadMedida());
-            pstmt.setInt(9, producto.getCategoria().getIdCategoria());
-            pstmt.setString(10, producto.getCodigoBarras());
-            pstmt.setBoolean(11, producto.isEstado());
-            pstmt.setInt(12, producto.getStockMinimo());
-            pstmt.setObject(13, producto.getCreadoPor());
+            stmt.setString(1, producto.getCodigoBarras());
+            stmt.setString(2, producto.getCodigoInterno());
+            stmt.setString(3, producto.getNombre());
+            stmt.setString(4, producto.getDescripcionCorta());
+            stmt.setString(5, producto.getDescripcionLarga());
+            stmt.setObject(6, producto.getCategoria() != null ? producto.getCategoria().getIdCategoria() : null);
+            stmt.setString(7, producto.getMarca());
+            stmt.setBigDecimal(8, producto.getPrecioCompra());
+            stmt.setBigDecimal(9, producto.getPrecioVenta());
+            stmt.setInt(10, producto.getCantidadStock());
+            stmt.setInt(11, producto.getStockMinimo());
+            stmt.setString(12, producto.getUnidadMedida());
+            stmt.setString(13, producto.getRutaImagen());
+            stmt.setString(14, producto.getEstado());
+            stmt.setObject(15, producto.getCreadoPor());
 
-            int filasAfectadas = pstmt.executeUpdate();
+            int filasAfectadas = stmt.executeUpdate();
 
             if (filasAfectadas > 0) {
-                ResultSet rs = pstmt.getGeneratedKeys();
-                if (rs.next()) {
-                    producto.setIdProducto(rs.getInt(1));
+                ResultSet keys = stmt.getGeneratedKeys();
+                if (keys.next()) {
+                    producto.setIdProducto(keys.getInt(1));
                 }
                 return true;
             }
+            return false;
 
         } catch (SQLException e) {
-            System.err.println("Error al crear producto: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error guardando producto: " + e.getMessage());
+            return false;
         }
-
-        return false;
     }
 
-    // Actualizar producto existente
     public boolean actualizar(Producto producto) {
-        String sql = "UPDATE productos SET nombre = ?, descripcion_corta = ?, descripcion_larga = ?, " +
-                "ruta_imagen = ?, precio_compra = ?, precio_venta = ?, cantidad_stock = ?, " +
-                "unidad_medida = ?, id_categoria = ?, codigo_barras = ?, estado = ?, " +
-                "stock_minimo = ?, fecha_modificacion = CURRENT_TIMESTAMP, modificado_por = ? " +
-                "WHERE id_producto = ?";
+        String sql = "UPDATE productos SET codigo_barras = ?, codigo_interno = ?, nombre = ?, " +
+                    "descripcion_corta = ?, descripcion_larga = ?, id_categoria = ?, marca = ?, " +
+                    "precio_compra = ?, precio_venta = ?, stock = ?, stock_minimo = ?, " +
+                    "unidad_medida = ?, imagen = ?, estado = ?, modificado_por = ?, " +
+                    "fecha_modificacion = CURRENT_TIMESTAMP WHERE id_producto = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, producto.getNombre());
-            pstmt.setString(2, producto.getDescripcionCorta());
-            pstmt.setString(3, producto.getDescripcionLarga());
-            pstmt.setString(4, producto.getRutaImagen());
-            pstmt.setBigDecimal(5, producto.getPrecioCompra());
-            pstmt.setBigDecimal(6, producto.getPrecioVenta());
-            pstmt.setInt(7, producto.getCantidadStock());
-            pstmt.setString(8, producto.getUnidadMedida());
-            pstmt.setInt(9, producto.getCategoria().getIdCategoria());
-            pstmt.setString(10, producto.getCodigoBarras());
-            pstmt.setBoolean(11, producto.isEstado());
-            pstmt.setInt(12, producto.getStockMinimo());
-            pstmt.setObject(13, producto.getModificadoPor());
-            pstmt.setInt(14, producto.getIdProducto());
+            stmt.setString(1, producto.getCodigoBarras());
+            stmt.setString(2, producto.getCodigoInterno());
+            stmt.setString(3, producto.getNombre());
+            stmt.setString(4, producto.getDescripcionCorta());
+            stmt.setString(5, producto.getDescripcionLarga());
+            stmt.setObject(6, producto.getCategoria() != null ? producto.getCategoria().getIdCategoria() : null);
+            stmt.setString(7, producto.getMarca());
+            stmt.setBigDecimal(8, producto.getPrecioCompra());
+            stmt.setBigDecimal(9, producto.getPrecioVenta());
+            stmt.setInt(10, producto.getCantidadStock());
+            stmt.setInt(11, producto.getStockMinimo());
+            stmt.setString(12, producto.getUnidadMedida());
+            stmt.setString(13, producto.getRutaImagen());
+            stmt.setString(14, producto.getEstado());
+            stmt.setObject(15, producto.getModificadoPor());
+            stmt.setInt(16, producto.getIdProducto());
 
-            return pstmt.executeUpdate() > 0;
+            return stmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            System.err.println("Error al actualizar producto: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error actualizando producto: " + e.getMessage());
+            return false;
         }
-
-        return false;
     }
 
-    // Buscar producto por ID
-    public Producto buscarPorId(int idProducto) {
+    public Producto obtenerPorId(int idProducto) {
         String sql = "SELECT p.*, c.nombre as categoria_nombre, c.descripcion as categoria_descripcion " +
-                "FROM productos p " +
-                "INNER JOIN categorias c ON p.id_categoria = c.id_categoria " +
-                "WHERE p.id_producto = ?";
+                    "FROM productos p " +
+                    "LEFT JOIN categorias c ON p.id_categoria = c.id_categoria " +
+                    "WHERE p.id_producto = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            pstmt.setInt(1, idProducto);
-            ResultSet rs = pstmt.executeQuery();
+            stmt.setInt(1, idProducto);
+            ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
                 return mapearProducto(rs);
             }
+            return null;
 
         } catch (SQLException e) {
-            System.err.println("Error al buscar producto por ID: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error obteniendo producto por ID: " + e.getMessage());
+            return null;
         }
-
-        return null;
     }
 
-    // Buscar producto por código de barras
-    public Producto buscarPorCodigoBarras(String codigoBarras) {
+    public Producto obtenerPorCodigoBarras(String codigoBarras) {
         String sql = "SELECT p.*, c.nombre as categoria_nombre, c.descripcion as categoria_descripcion " +
-                "FROM productos p " +
-                "INNER JOIN categorias c ON p.id_categoria = c.id_categoria " +
-                "WHERE p.codigo_barras = ?";
+                    "FROM productos p " +
+                    "LEFT JOIN categorias c ON p.id_categoria = c.id_categoria " +
+                    "WHERE p.codigo_barras = ? AND p.estado = 'ACTIVO'";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, codigoBarras);
-            ResultSet rs = pstmt.executeQuery();
+            stmt.setString(1, codigoBarras);
+            ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
                 return mapearProducto(rs);
             }
+            return null;
 
         } catch (SQLException e) {
-            System.err.println("Error al buscar producto por código: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error obteniendo producto por código de barras: " + e.getMessage());
+            return null;
         }
-
-        return null;
     }
 
-    // Listar todos los productos
-    public List<Producto> listarTodos() {
-        List<Producto> productos = new ArrayList<>();
+    public Producto obtenerPorCodigo(String codigoInterno) {
         String sql = "SELECT p.*, c.nombre as categoria_nombre, c.descripcion as categoria_descripcion " +
-                "FROM productos p " +
-                "INNER JOIN categorias c ON p.id_categoria = c.id_categoria " +
-                "ORDER BY p.nombre";
+                    "FROM productos p " +
+                    "LEFT JOIN categorias c ON p.id_categoria = c.id_categoria " +
+                    "WHERE p.codigo_interno = ? AND p.estado = 'ACTIVO'";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, codigoInterno);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return mapearProducto(rs);
+            }
+            return null;
+
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo producto por código interno: " + e.getMessage());
+            return null;
+        }
+    }
+
+    public List<Producto> obtenerTodos() {
+        String sql = "SELECT p.*, c.nombre as categoria_nombre, c.descripcion as categoria_descripcion " +
+                    "FROM productos p " +
+                    "LEFT JOIN categorias c ON p.id_categoria = c.id_categoria " +
+                    "ORDER BY p.nombre";
+
+        List<Producto> productos = new ArrayList<>();
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
 
             while (rs.next()) {
                 productos.add(mapearProducto(rs));
             }
 
         } catch (SQLException e) {
-            System.err.println("Error al listar productos: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error obteniendo productos: " + e.getMessage());
         }
 
         return productos;
     }
 
-    // Listar productos activos
-    public List<Producto> listarActivos() {
-        List<Producto> productos = new ArrayList<>();
-        String sql = "SELECT p.*, c.nombre as categoria_nombre, c.descripcion as categoria_descripcion " +
-                "FROM productos p " +
-                "INNER JOIN categorias c ON p.id_categoria = c.id_categoria " +
-                "WHERE p.estado = TRUE ORDER BY p.nombre";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
-                productos.add(mapearProducto(rs));
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error al listar productos activos: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return productos;
-    }
-
-    // Listar productos por categoría
-    public List<Producto> listarPorCategoria(int idCategoria) {
-        List<Producto> productos = new ArrayList<>();
-        String sql = "SELECT p.*, c.nombre as categoria_nombre, c.descripcion as categoria_descripcion " +
-                "FROM productos p " +
-                "INNER JOIN categorias c ON p.id_categoria = c.id_categoria " +
-                "WHERE p.id_categoria = ? AND p.estado = TRUE ORDER BY p.nombre";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, idCategoria);
-            ResultSet rs = pstmt.executeQuery();
-
-            while (rs.next()) {
-                productos.add(mapearProducto(rs));
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error al listar productos por categoría: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return productos;
-    }
-
-    // Buscar productos por nombre
     public List<Producto> buscarPorNombre(String nombre) {
-        List<Producto> productos = new ArrayList<>();
         String sql = "SELECT p.*, c.nombre as categoria_nombre, c.descripcion as categoria_descripcion " +
-                "FROM productos p " +
-                "INNER JOIN categorias c ON p.id_categoria = c.id_categoria " +
-                "WHERE p.nombre LIKE ? AND p.estado = TRUE ORDER BY p.nombre";
+                    "FROM productos p " +
+                    "LEFT JOIN categorias c ON p.id_categoria = c.id_categoria " +
+                    "WHERE p.nombre LIKE ? AND p.estado = 'ACTIVO' " +
+                    "ORDER BY p.nombre";
+
+        List<Producto> productos = new ArrayList<>();
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, "%" + nombre + "%");
-            ResultSet rs = pstmt.executeQuery();
+            stmt.setString(1, "%" + nombre + "%");
+            ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
                 productos.add(mapearProducto(rs));
             }
 
         } catch (SQLException e) {
-            System.err.println("Error al buscar productos por nombre: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error buscando productos por nombre: " + e.getMessage());
         }
 
         return productos;
     }
 
-    // Listar productos con bajo stock
-    public List<Producto> listarBajoStock() {
-        List<Producto> productos = new ArrayList<>();
+    public List<Producto> obtenerPorCategoria(int idCategoria) {
         String sql = "SELECT p.*, c.nombre as categoria_nombre, c.descripcion as categoria_descripcion " +
-                "FROM productos p " +
-                "INNER JOIN categorias c ON p.id_categoria = c.id_categoria " +
-                "WHERE p.cantidad_stock <= p.stock_minimo AND p.estado = TRUE ORDER BY p.cantidad_stock";
+                    "FROM productos p " +
+                    "LEFT JOIN categorias c ON p.id_categoria = c.id_categoria " +
+                    "WHERE p.id_categoria = ? AND p.estado = 'ACTIVO' " +
+                    "ORDER BY p.nombre";
+
+        List<Producto> productos = new ArrayList<>();
 
         try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, idCategoria);
+            ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
                 productos.add(mapearProducto(rs));
             }
 
         } catch (SQLException e) {
-            System.err.println("Error al listar productos con bajo stock: " + e.getMessage());
+            System.err.println("Error obteniendo productos por categoría: " + e.getMessage());
+        }
+
+        return productos;
+    }
+
+    public List<Producto> obtenerConBajoStock() {
+        String sql = "SELECT p.*, c.nombre as categoria_nombre, c.descripcion as categoria_descripcion " +
+                    "FROM productos p " +
+                    "LEFT JOIN categorias c ON p.id_categoria = c.id_categoria " +
+                    "WHERE p.stock <= p.stock_minimo AND p.estado = 'ACTIVO' " +
+                    "ORDER BY p.stock ASC";
+
+        List<Producto> productos = new ArrayList<>();
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                productos.add(mapearProducto(rs));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo productos con bajo stock: " + e.getMessage());
+        }
+
+        return productos;
+    }
+
+    public boolean actualizarStock(int idProducto, int nuevaCantidad) {
+        String sql = "UPDATE productos SET stock = ?, fecha_modificacion = CURRENT_TIMESTAMP " +
+                    "WHERE id_producto = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, nuevaCantidad);
+            stmt.setInt(2, idProducto);
+
+            return stmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error actualizando stock: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // Métodos faltantes que necesitan los controladores
+    public List<Producto> obtenerProductosConBajoStock() {
+        return obtenerConBajoStock();
+    }
+
+    public boolean crear(Producto producto) {
+        return guardar(producto);
+    }
+
+    public boolean eliminar(int idProducto) {
+        String sql = "UPDATE productos SET estado = 'INACTIVO', fecha_modificacion = CURRENT_TIMESTAMP " +
+                    "WHERE id_producto = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, idProducto);
+            return stmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error eliminando producto: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public List<com.pos.puntoventaocr.controllers.ReporteProductosController.ProductoVendido> obtenerProductosMasVendidos(
+            java.time.LocalDate fechaDesde, java.time.LocalDate fechaHasta, String categoria, Integer top) {
+
+        List<com.pos.puntoventaocr.controllers.ReporteProductosController.ProductoVendido> productos = new ArrayList<>();
+
+        String sql = "SELECT p.codigo_interno, p.nombre, c.nombre as categoria, " +
+                    "SUM(dv.cantidad) as cantidad_vendida, SUM(dv.subtotal) as monto_total " +
+                    "FROM detalle_ventas dv " +
+                    "JOIN productos p ON dv.id_producto = p.id_producto " +
+                    "JOIN ventas v ON dv.id_venta = v.id_venta " +
+                    "LEFT JOIN categorias c ON p.id_categoria = c.id_categoria " +
+                    "WHERE DATE(v.fecha) BETWEEN ? AND ? ";
+
+        if (!"Todas".equals(categoria)) {
+            sql += "AND c.nombre = ? ";
+        }
+
+        sql += "GROUP BY p.id_producto, p.codigo_interno, p.nombre, c.nombre " +
+               "ORDER BY cantidad_vendida DESC ";
+
+        if (top != null && top > 0) {
+            sql += "LIMIT " + top;
+        }
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setDate(1, Date.valueOf(fechaDesde));
+            stmt.setDate(2, Date.valueOf(fechaHasta));
+
+            if (!"Todas".equals(categoria)) {
+                stmt.setString(3, categoria);
+            }
+
+            ResultSet rs = stmt.executeQuery();
+
+            // Primero calculamos el total para los porcentajes
+            List<TempProducto> tempProductos = new ArrayList<>();
+            double totalVentas = 0;
+
+            while (rs.next()) {
+                double monto = rs.getDouble("monto_total");
+                totalVentas += monto;
+
+                TempProducto temp = new TempProducto();
+                temp.codigo = rs.getString("codigo_interno");
+                temp.nombre = rs.getString("nombre");
+                temp.categoria = rs.getString("categoria");
+                temp.cantidadVendida = rs.getInt("cantidad_vendida");
+                temp.montoTotal = monto;
+                tempProductos.add(temp);
+            }
+
+            // Ahora creamos los productos finales con porcentajes
+            int posicion = 1;
+            for (TempProducto temp : tempProductos) {
+                double porcentaje = totalVentas > 0 ? (temp.montoTotal / totalVentas) * 100 : 0;
+
+                com.pos.puntoventaocr.controllers.ReporteProductosController.ProductoVendido producto =
+                    new com.pos.puntoventaocr.controllers.ReporteProductosController.ProductoVendido(
+                        posicion++,
+                        temp.codigo,
+                        temp.nombre,
+                        temp.categoria,
+                        temp.cantidadVendida,
+                        temp.montoTotal,
+                        porcentaje
+                    );
+                productos.add(producto);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo productos más vendidos: " + e.getMessage());
             e.printStackTrace();
         }
 
         return productos;
     }
 
-    // Actualizar stock de producto
-    public boolean actualizarStock(int idProducto, int nuevoStock) {
-        String sql = "UPDATE productos SET cantidad_stock = ? WHERE id_producto = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, nuevoStock);
-            pstmt.setInt(2, idProducto);
-
-            return pstmt.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("Error al actualizar stock: " + e.getMessage());
-            e.printStackTrace();
+    public boolean existeCodigoBarras(String codigoBarras) {
+        if (codigoBarras == null || codigoBarras.trim().isEmpty()) {
+            return false;
         }
 
-        return false;
-    }
-
-    // Verificar si el código de barras ya existe
-    public boolean existeCodigoBarras(String codigoBarras, int idProductoExcluir) {
-        String sql = "SELECT COUNT(*) FROM productos WHERE codigo_barras = ? AND id_producto != ?";
+        String sql = "SELECT COUNT(*) FROM productos WHERE codigo_barras = ? AND estado != 'ELIMINADO'";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, codigoBarras);
-            pstmt.setInt(2, idProductoExcluir);
-            ResultSet rs = pstmt.executeQuery();
+            stmt.setString(1, codigoBarras.trim());
+            ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
                 return rs.getInt(1) > 0;
             }
 
         } catch (SQLException e) {
-            System.err.println("Error al verificar código de barras: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error verificando código de barras: " + e.getMessage());
         }
 
         return false;
     }
 
-    // Eliminar producto (soft delete)
-    public boolean eliminar(int idProducto) {
-        String sql = "UPDATE productos SET estado = FALSE WHERE id_producto = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, idProducto);
-            return pstmt.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("Error al eliminar producto: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return false;
+    // Clase auxiliar para almacenar datos temporalmente
+    private static class TempProducto {
+        String codigo;
+        String nombre;
+        String categoria;
+        int cantidadVendida;
+        double montoTotal;
     }
 
-    // Mapear ResultSet a objeto Producto
     private Producto mapearProducto(ResultSet rs) throws SQLException {
         Producto producto = new Producto();
+
         producto.setIdProducto(rs.getInt("id_producto"));
+        producto.setCodigoBarras(rs.getString("codigo_barras"));
+        producto.setCodigoInterno(rs.getString("codigo_interno"));
         producto.setNombre(rs.getString("nombre"));
         producto.setDescripcionCorta(rs.getString("descripcion_corta"));
         producto.setDescripcionLarga(rs.getString("descripcion_larga"));
-        producto.setRutaImagen(rs.getString("ruta_imagen"));
+        producto.setMarca(rs.getString("marca"));
         producto.setPrecioCompra(rs.getBigDecimal("precio_compra"));
         producto.setPrecioVenta(rs.getBigDecimal("precio_venta"));
-        producto.setCantidadStock(rs.getInt("cantidad_stock"));
-        producto.setUnidadMedida(rs.getString("unidad_medida"));
-        producto.setCodigoBarras(rs.getString("codigo_barras"));
-        producto.setEstado(rs.getBoolean("estado"));
+        producto.setCantidadStock(rs.getInt("stock"));
         producto.setStockMinimo(rs.getInt("stock_minimo"));
+        producto.setUnidadMedida(rs.getString("unidad_medida"));
+        producto.setRutaImagen(rs.getString("imagen"));
+        producto.setEstado(rs.getString("estado"));
+        producto.setFechaCreacion(rs.getTimestamp("fecha_creacion"));
+        producto.setFechaModificacion(rs.getTimestamp("fecha_modificacion"));
 
-        // Mapear categoría
-        Categoria categoria = new Categoria();
-        categoria.setIdCategoria(rs.getInt("id_categoria"));
-        categoria.setNombre(rs.getString("categoria_nombre"));
-        categoria.setDescripcion(rs.getString("categoria_descripcion"));
-        producto.setCategoria(categoria);
-
-        // Fechas
-        Timestamp fechaCreacion = rs.getTimestamp("fecha_creacion");
-        if (fechaCreacion != null) {
-            producto.setFechaCreacion(fechaCreacion.toLocalDateTime());
-        }
-
-        Timestamp fechaModificacion = rs.getTimestamp("fecha_modificacion");
-        if (fechaModificacion != null) {
-            producto.setFechaModificacion(fechaModificacion.toLocalDateTime());
+        // Mapear categoría si existe
+        int idCategoria = rs.getInt("id_categoria");
+        if (!rs.wasNull()) {
+            Categoria categoria = new Categoria();
+            categoria.setIdCategoria(idCategoria);
+            categoria.setNombre(rs.getString("categoria_nombre"));
+            categoria.setDescripcion(rs.getString("categoria_descripcion"));
+            producto.setCategoria(categoria);
         }
 
         return producto;

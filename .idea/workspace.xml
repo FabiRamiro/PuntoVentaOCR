@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="1e429fe0-97d8-4876-8f0c-77513ec62a9c" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/proyecto.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/Launcher.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/AjustarStockController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/AlertasStockController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/BienvenidaController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/BitacoraController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/CambiarPasswordController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/ConfiguracionController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/DuplicarProductoController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/GestionarCategoriasController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/GestionarDevolucionesController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/GestionarRolesController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/GestionarUsuariosController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/HistorialOCRController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/HistorialVentasController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/InventarioFisicoController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/NuevoProductoController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/ReporteGananciasController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/ReporteInventarioController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/ReporteProductosController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/ReporteVentasController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/RespaldoBDController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/dao/BitacoraDAO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/dao/ConfiguracionDAO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/dao/DevolucionDAO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/dao/RolDAO.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/Bitacora.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/Devolucion.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/InventarioFisico.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/RespaldoInfo.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/ResumenGanancia.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/test/GenerarHashPassword.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/test/TestAutenticacion.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/test/TestConexion.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/utils/PDFExporter.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/utils/TicketPrinter.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/admin/bitacora.fxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/admin/configuracion.fxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/admin/gestionar_roles.fxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/admin/gestionar_usuarios.fxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/admin/respaldo_bd.fxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/bienvenida.fxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/ocr/historial_ocr.fxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/productos/ajustar_stock.fxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/productos/alertas_stock.fxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/productos/duplicar_producto.fxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/productos/gestionar_categorias.fxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/productos/inventario_fisico.fxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/productos/nuevo_producto.fxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/reportes/reporte_ganancias.fxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/reportes/reporte_inventario.fxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/reportes/reporte_productos.fxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/reportes/reporte_ventas.fxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/sistema/cambiar_password.fxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/ventas/gestionar_devoluciones.fxml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/fxml/ventas/historial_ventas.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/material_theme_project_new.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/database/schema.sql" beforeDir="false" afterPath="$PROJECT_DIR$/database/schema.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/Main.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/config/DatabaseConnection.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/config/DatabaseConnection.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/GestionarProductosController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/GestionarProductosController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/LoginController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/LoginController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/NuevaVentaController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/NuevaVentaController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/PrincipalController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/PrincipalController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/ValidarOCRController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/controllers/ValidarOCRController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/dao/CategoriaDAO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/dao/CategoriaDAO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/dao/ComprobanteOCRDAO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/dao/ComprobanteOCRDAO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/dao/ProductoDAO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/dao/ProductoDAO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/dao/UsuarioDAO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/dao/UsuarioDAO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/dao/VentaDAO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/dao/VentaDAO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/BitacoraAcciones.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/BitacoraAcciones.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/Categoria.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/Categoria.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/Cliente.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/Cliente.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/ComprobanteOCR.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/ComprobanteOCR.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/DetalleVenta.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/DetalleVenta.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/MotorOCR.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/MotorOCR.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/Producto.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/Producto.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/Rol.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/Rol.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/Usuario.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/Usuario.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/Venta.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/Venta.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/utils/AlertUtils.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/utils/AlertUtils.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/utils/PasswordUtils.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/utils/PasswordUtils.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/utils/SessionManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/utils/SessionManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/com/pos/puntoventaocr/hello-view.fxml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/fxml/login.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/fxml/login.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/fxml/ocr/validar_ocr.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/fxml/ocr/validar_ocr.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/fxml/principal.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/fxml/principal.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/fxml/productos/gestionar_productos.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/fxml/productos/gestionar_productos.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/fxml/ventas/nueva_venta.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/fxml/ventas/nueva_venta.fxml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;FabiRamiro&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;git@github.com:FabiRamiro/PuntoVentaOCR&quot;,
+    &quot;accountId&quot;: &quot;f6eeee12-6e3c-4c4a-b231-877cbddf4487&quot;
+  }
+}</component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/src/main/java/com/pos/puntoventaocr/models/Rol.java" root0="FORCE_HIGHLIGHTING" />
+  </component>
+  <component name="JsbtTreeLayoutManager">
+    <layout place="tools.popupGrunt">
+      <scroll-view-position x="0" y="0" />
+    </layout>
+  </component>
+  <component name="MavenImportPreferences">
+    <option name="generalSettings">
+      <MavenGeneralSettings>
+        <option name="mavenHomeTypeForPersistence" value="WRAPPER" />
+      </MavenGeneralSettings>
+    </option>
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 6
+}</component>
+  <component name="ProjectId" id="31OhpEFBwSUlTMnrGZSzfhLY7nE" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;Master&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.github.copilot.settings.general.GeneralConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-fbdcb00ec9e3-intellij.indexing.shared.core-IU-251.27812.49" />
+        <option value="bundled-js-predefined-d6986cc7102b-09060db00ec0-JavaScript-IU-251.27812.49" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="1e429fe0-97d8-4876-8f0c-77513ec62a9c" name="Changes" comment="" />
+      <created>1755401215105</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1755401215105</updated>
+      <workItem from="1755401232024" duration="591000" />
+      <workItem from="1755401995681" duration="851000" />
+      <workItem from="1755402923777" duration="378000" />
+      <workItem from="1755403520491" duration="676000" />
+      <workItem from="1755404384736" duration="569000" />
+      <workItem from="1755405054562" duration="15124000" />
+      <workItem from="1755466070552" duration="346000" />
+      <workItem from="1755466841872" duration="41328000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
+  </component>
+</project>

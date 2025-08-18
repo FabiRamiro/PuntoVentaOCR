@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+
+<DialogPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pos.puntoventaocr.controllers.NuevoProductoController">
+   <header>
+      <Label style="-fx-font-size: 16px; -fx-font-weight: bold;" text="Nuevo Producto" />
+   </header>
+
+   <content>
+      <ScrollPane fitToWidth="true" prefHeight="500.0" prefWidth="500.0">
+         <content>
+            <VBox spacing="15.0">
+               <padding>
+                  <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+               </padding>
+
+               <!-- Información básica -->
+               <VBox spacing="10.0">
+                  <children>
+                     <Label style="-fx-font-weight: bold;" text="Información Básica" />
+                     <Separator />
+
+                     <GridPane hgap="10.0" vgap="10.0">
+                        <columnConstraints>
+                           <ColumnConstraints halignment="RIGHT" minWidth="120.0" />
+                           <ColumnConstraints hgrow="ALWAYS" minWidth="200.0" />
+                        </columnConstraints>
+
+                        <Label text="Nombre:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                        <TextField fx:id="txtNombre" promptText="Nombre del producto" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+                        <Label text="Código Barras:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                        <TextField fx:id="txtCodigoBarras" promptText="Código de barras" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+                        <Label text="Código Interno:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                        <TextField fx:id="txtCodigoInterno" promptText="Código interno (opcional)" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+                        <Label text="Marca:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                        <TextField fx:id="txtMarca" promptText="Marca del producto" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+
+                        <Label text="Categoría:" GridPane.columnIndex="0" GridPane.rowIndex="4" />
+                        <ComboBox fx:id="cmbCategoria" prefWidth="200.0" promptText="Seleccionar categoría" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+
+                        <Label text="Unidad Medida:" GridPane.columnIndex="0" GridPane.rowIndex="5" />
+                        <ComboBox fx:id="cmbUnidadMedida" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+                     </GridPane>
+
+                     <Label text="Descripción Corta:" />
+                     <TextField fx:id="txtDescripcionCorta" promptText="Descripción breve del producto" />
+
+                     <Label text="Descripción Larga:" />
+                     <TextArea fx:id="txtDescripcionLarga" prefRowCount="3" promptText="Descripción detallada del producto" />
+                  </children>
+               </VBox>
+
+               <!-- Precios e inventario -->
+               <VBox spacing="10.0">
+                  <children>
+                     <Label style="-fx-font-weight: bold;" text="Precios e Inventario" />
+                     <Separator />
+
+                     <GridPane hgap="10.0" vgap="10.0">
+                        <columnConstraints>
+                           <ColumnConstraints halignment="RIGHT" minWidth="120.0" />
+                           <ColumnConstraints hgrow="ALWAYS" minWidth="200.0" />
+                        </columnConstraints>
+
+                        <Label text="Precio Compra:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                        <TextField fx:id="txtPrecioCompra" promptText="0.00" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+                        <Label text="Precio Venta:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                        <TextField fx:id="txtPrecioVenta" promptText="0.00" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+                        <Label text="Stock Inicial:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                        <TextField fx:id="txtStock" promptText="0" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+                        <Label text="Stock Mínimo:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                        <TextField fx:id="txtStockMinimo" promptText="5" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                     </GridPane>
+                  </children>
+               </VBox>
+
+               <!-- Estado -->
+               <VBox spacing="10.0">
+                  <children>
+                     <Label style="-fx-font-weight: bold;" text="Estado" />
+                     <Separator />
+                     <CheckBox fx:id="chkActivo" selected="true" text="Producto activo" />
+                  </children>
+               </VBox>
+
+               <!-- Imagen del producto -->
+               <VBox spacing="10.0">
+                  <children>
+                     <Label style="-fx-font-weight: bold;" text="Imagen del Producto" />
+                     <Separator />
+
+                     <VBox alignment="CENTER" spacing="10.0" style="-fx-border-color: #dee2e6; -fx-border-style: dashed; -fx-padding: 10;">
+                        <children>
+                           <ImageView fx:id="imgPreview" fitHeight="150.0" fitWidth="150.0" pickOnBounds="true" preserveRatio="true" style="-fx-background-color: #f8f9fa;" />
+                           <Label fx:id="lblImagenInfo" style="-fx-text-fill: #6c757d;" text="Arrastra una imagen aquí o usa el botón para seleccionar" />
+                           <HBox alignment="CENTER" spacing="10.0">
+                              <children>
+                                 <Button fx:id="btnSeleccionarImagen" onAction="#seleccionarImagen" text="Seleccionar Imagen" />
+                                 <Button fx:id="btnEliminarImagen" onAction="#eliminarImagen" text="Eliminar" visible="false" />
+                              </children>
+                           </HBox>
+                        </children>
+                     </VBox>
+                  </children>
+               </VBox>
+            </VBox>
+         </content>
+      </ScrollPane>
+   </content>
+
+   <buttonTypes>
+      <ButtonType fx:constant="OK" />
+      <ButtonType fx:constant="CANCEL" />
+   </buttonTypes>
+</DialogPane>

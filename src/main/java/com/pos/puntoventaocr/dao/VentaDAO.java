@@ -1,436 +1,415 @@
 package com.pos.puntoventaocr.dao;
 
 import com.pos.puntoventaocr.config.DatabaseConnection;
-import com.pos.puntoventaocr.models.Venta;
-import com.pos.puntoventaocr.models.DetalleVenta;
-import com.pos.puntoventaocr.models.Usuario;
-import com.pos.puntoventaocr.models.Producto;
-import com.pos.puntoventaocr.models.Categoria;
+import com.pos.puntoventaocr.models.*;
 
 import java.math.BigDecimal;
 import java.sql.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class VentaDAO {
-    private UsuarioDAO usuarioDAO;
-    private ProductoDAO productoDAO;
 
-    public VentaDAO() {
-        this.usuarioDAO = new UsuarioDAO();
-        this.productoDAO = new ProductoDAO();
-    }
+    public boolean guardar(Venta venta) {
+        String sqlVenta = "INSERT INTO ventas (numero_venta, fecha, id_usuario, id_cliente, subtotal, " +
+                         "iva, total, metodo_pago, estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-    // Crear nueva venta
-    public boolean crear(Venta venta) {
+        String sqlDetalle = "INSERT INTO detalle_ventas (id_venta, id_producto, cantidad, precio_unitario, " +
+                           "subtotal, descuento) VALUES (?, ?, ?, ?, ?, ?)";
+
+        String sqlActualizarStock = "UPDATE productos SET stock = stock - ? WHERE id_producto = ?";
+
         Connection conn = null;
         try {
             conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
 
             // Insertar venta
-            String sqlVenta = "INSERT INTO ventas (numero_venta, fecha_venta, id_usuario, metodo_pago, " +
-                    "subtotal, impuestos, total, estado, observaciones, referencia_transferencia) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            try (PreparedStatement stmtVenta = conn.prepareStatement(sqlVenta, Statement.RETURN_GENERATED_KEYS)) {
+                stmtVenta.setString(1, venta.getNumeroVenta());
+                stmtVenta.setTimestamp(2, Timestamp.valueOf(venta.getFecha()));
+                stmtVenta.setInt(3, venta.getUsuario().getIdUsuario());
+                stmtVenta.setObject(4, venta.getCliente() != null ? venta.getCliente().getIdCliente() : null);
+                stmtVenta.setBigDecimal(5, venta.getSubtotal());
+                stmtVenta.setBigDecimal(6, venta.getIva());
+                stmtVenta.setBigDecimal(7, venta.getTotal());
+                stmtVenta.setString(8, venta.getMetodoPago());
+                stmtVenta.setString(9, venta.getEstado());
 
-            PreparedStatement pstmtVenta = conn.prepareStatement(sqlVenta, Statement.RETURN_GENERATED_KEYS);
-            pstmtVenta.setString(1, venta.getNumeroVenta());
-            pstmtVenta.setTimestamp(2, Timestamp.valueOf(venta.getFechaVenta()));
-            pstmtVenta.setInt(3, venta.getUsuario().getIdUsuario());
-            pstmtVenta.setString(4, venta.getMetodoPago());
-            pstmtVenta.setBigDecimal(5, venta.getSubtotal());
-            pstmtVenta.setBigDecimal(6, venta.getImpuestos());
-            pstmtVenta.setBigDecimal(7, venta.getTotal());
-            pstmtVenta.setString(8, venta.getEstado());
-            pstmtVenta.setString(9, venta.getObservaciones());
-            pstmtVenta.setString(10, venta.getReferenciaTransferencia());
-
-            int filasVenta = pstmtVenta.executeUpdate();
-
-            if (filasVenta > 0) {
-                ResultSet rs = pstmtVenta.getGeneratedKeys();
-                if (rs.next()) {
-                    venta.setIdVenta(rs.getInt(1));
-                }
-
-                // Insertar detalles de venta
-                String sqlDetalle = "INSERT INTO detalle_ventas (id_venta, id_producto, cantidad, " +
-                        "precio_unitario, subtotal, descuento) VALUES (?, ?, ?, ?, ?, ?)";
-
-                PreparedStatement pstmtDetalle = conn.prepareStatement(sqlDetalle);
-
-                for (DetalleVenta detalle : venta.getDetalles()) {
-                    pstmtDetalle.setInt(1, venta.getIdVenta());
-                    pstmtDetalle.setInt(2, detalle.getProducto().getIdProducto());
-                    pstmtDetalle.setInt(3, detalle.getCantidad());
-                    pstmtDetalle.setBigDecimal(4, detalle.getPrecioUnitario());
-                    pstmtDetalle.setBigDecimal(5, detalle.getSubtotal());
-                    pstmtDetalle.setBigDecimal(6, detalle.getDescuento());
-                    pstmtDetalle.addBatch();
-                }
-
-                pstmtDetalle.executeBatch();
-                conn.commit();
-                return true;
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error al crear venta: " + e.getMessage());
-            e.printStackTrace();
-            try {
-                if (conn != null) {
+                int filasAfectadas = stmtVenta.executeUpdate();
+                if (filasAfectadas == 0) {
                     conn.rollback();
+                    return false;
                 }
-            } catch (SQLException rollbackEx) {
-                System.err.println("Error en rollback: " + rollbackEx.getMessage());
+
+                ResultSet keys = stmtVenta.getGeneratedKeys();
+                if (keys.next()) {
+                    venta.setIdVenta(keys.getInt(1));
+                } else {
+                    conn.rollback();
+                    return false;
+                }
             }
+
+            // Insertar detalles de venta
+            try (PreparedStatement stmtDetalle = conn.prepareStatement(sqlDetalle)) {
+                for (DetalleVenta detalle : venta.getDetalles()) {
+                    stmtDetalle.setInt(1, venta.getIdVenta());
+                    stmtDetalle.setInt(2, detalle.getProducto().getIdProducto());
+                    stmtDetalle.setBigDecimal(3, detalle.getCantidad());
+                    stmtDetalle.setBigDecimal(4, detalle.getPrecioUnitario());
+                    stmtDetalle.setBigDecimal(5, detalle.getSubtotal());
+                    stmtDetalle.setBigDecimal(6, detalle.getDescuento());
+                    stmtDetalle.addBatch();
+                }
+                stmtDetalle.executeBatch();
+            }
+
+            // Actualizar stock de productos
+            try (PreparedStatement stmtStock = conn.prepareStatement(sqlActualizarStock)) {
+                for (DetalleVenta detalle : venta.getDetalles()) {
+                    stmtStock.setInt(1, detalle.getCantidad().intValue());
+                    stmtStock.setInt(2, detalle.getProducto().getIdProducto());
+                    stmtStock.addBatch();
+                }
+                stmtStock.executeBatch();
+            }
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    System.err.println("Error en rollback: " + ex.getMessage());
+                }
+            }
+            System.err.println("Error guardando venta: " + e.getMessage());
+            return false;
         } finally {
-            try {
-                if (conn != null) {
+            if (conn != null) {
+                try {
                     conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException e) {
+                    System.err.println("Error cerrando conexión: " + e.getMessage());
                 }
-            } catch (SQLException e) {
-                System.err.println("Error al restaurar autocommit: " + e.getMessage());
             }
         }
-
-        return false;
     }
 
-    // Buscar venta por ID
-    public Venta buscarPorId(int idVenta) {
-        String sql = "SELECT v.*, u.nombre_usuario, u.nombre, u.apellidos " +
-                "FROM ventas v " +
-                "INNER JOIN usuarios u ON v.id_usuario = u.id_usuario " +
-                "WHERE v.id_venta = ?";
+    public List<Venta> obtenerTodas() {
+        String sql = "SELECT v.*, u.nombre as usuario_nombre, u.apellidos as usuario_apellido, " +
+                    "c.nombre as cliente_nombre " +
+                    "FROM ventas v " +
+                    "LEFT JOIN usuarios u ON v.id_usuario = u.id_usuario " +
+                    "LEFT JOIN clientes c ON v.id_cliente = c.id_cliente " +
+                    "ORDER BY v.fecha DESC";
 
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, idVenta);
-            ResultSet rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                Venta venta = mapearVenta(rs);
-                cargarDetallesVenta(venta);
-                return venta;
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error al buscar venta por ID: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return null;
-    }
-
-    // Buscar venta por número
-    public Venta buscarPorNumero(String numeroVenta) {
-        String sql = "SELECT v.*, u.nombre_usuario, u.nombre, u.apellidos " +
-                "FROM ventas v " +
-                "INNER JOIN usuarios u ON v.id_usuario = u.id_usuario " +
-                "WHERE v.numero_venta = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, numeroVenta);
-            ResultSet rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                Venta venta = mapearVenta(rs);
-                cargarDetallesVenta(venta);
-                return venta;
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error al buscar venta por número: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return null;
-    }
-
-    // Listar todas las ventas
-    public List<Venta> listarTodas() {
-        return listarVentas(null, null, null);
-    }
-
-    // Listar ventas por fecha
-    public List<Venta> listarPorFecha(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
-        return listarVentas(fechaInicio, fechaFin, null);
-    }
-
-    // Listar ventas por usuario
-    public List<Venta> listarPorUsuario(int idUsuario) {
-        return listarVentas(null, null, idUsuario);
-    }
-
-    // Listar ventas con filtros
-    public List<Venta> listarVentas(LocalDateTime fechaInicio, LocalDateTime fechaFin, Integer idUsuario) {
         List<Venta> ventas = new ArrayList<>();
-        StringBuilder sql = new StringBuilder(
-                "SELECT v.*, u.nombre_usuario, u.nombre, u.apellidos " +
-                        "FROM ventas v " +
-                        "INNER JOIN usuarios u ON v.id_usuario = u.id_usuario " +
-                        "WHERE 1=1 ");
-
-        if (fechaInicio != null) {
-            sql.append("AND v.fecha_venta >= ? ");
-        }
-        if (fechaFin != null) {
-            sql.append("AND v.fecha_venta <= ? ");
-        }
-        if (idUsuario != null) {
-            sql.append("AND v.id_usuario = ? ");
-        }
-
-        sql.append("ORDER BY v.fecha_venta DESC");
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
-
-            int paramIndex = 1;
-            if (fechaInicio != null) {
-                pstmt.setTimestamp(paramIndex++, Timestamp.valueOf(fechaInicio));
-            }
-            if (fechaFin != null) {
-                pstmt.setTimestamp(paramIndex++, Timestamp.valueOf(fechaFin));
-            }
-            if (idUsuario != null) {
-                pstmt.setInt(paramIndex++, idUsuario);
-            }
-
-            ResultSet rs = pstmt.executeQuery();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
 
             while (rs.next()) {
-                Venta venta = mapearVenta(rs);
-                cargarDetallesVenta(venta);
-                ventas.add(venta);
+                ventas.add(mapearVenta(rs));
             }
 
         } catch (SQLException e) {
-            System.err.println("Error al listar ventas: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error obteniendo ventas: " + e.getMessage());
         }
 
         return ventas;
     }
 
-    // Anular venta
-    public boolean anular(int idVenta, String motivo, int usuarioAnula) {
-        String sql = "UPDATE ventas SET estado = 'ANULADA', motivo_anulacion = ?, " +
-                "fecha_anulacion = CURRENT_TIMESTAMP, anulado_por = ? WHERE id_venta = ?";
+    public List<Venta> obtenerVentasPorFiltros(LocalDate fechaDesde, LocalDate fechaHasta,
+                                               String usuario, String estado) {
+        StringBuilder sql = new StringBuilder(
+            "SELECT v.*, u.nombre as usuario_nombre, u.apellidos as usuario_apellido, " +
+            "c.nombre as cliente_nombre " +
+            "FROM ventas v " +
+            "LEFT JOIN usuarios u ON v.id_usuario = u.id_usuario " +
+            "LEFT JOIN clientes c ON v.id_cliente = c.id_cliente " +
+            "WHERE 1=1 ");
+
+        List<Object> parametros = new ArrayList<>();
+
+        if (fechaDesde != null) {
+            sql.append("AND DATE(v.fecha) >= ? ");
+            parametros.add(Date.valueOf(fechaDesde));
+        }
+
+        if (fechaHasta != null) {
+            sql.append("AND DATE(v.fecha) <= ? ");
+            parametros.add(Date.valueOf(fechaHasta));
+        }
+
+        if (usuario != null && !"Todos".equals(usuario)) {
+            sql.append("AND CONCAT(u.nombre, ' ', u.apellidos) = ? ");
+            parametros.add(usuario);
+        }
+
+        if (estado != null && !"Todos".equals(estado)) {
+            sql.append("AND v.estado = ? ");
+            parametros.add(estado);
+        }
+
+        sql.append("ORDER BY v.fecha DESC");
+
+        List<Venta> ventas = new ArrayList<>();
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
 
-            pstmt.setString(1, motivo);
-            pstmt.setInt(2, usuarioAnula);
-            pstmt.setInt(3, idVenta);
+            for (int i = 0; i < parametros.size(); i++) {
+                stmt.setObject(i + 1, parametros.get(i));
+            }
 
-            return pstmt.executeUpdate() > 0;
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                ventas.add(mapearVenta(rs));
+            }
 
         } catch (SQLException e) {
-            System.err.println("Error al anular venta: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error obteniendo ventas por filtros: " + e.getMessage());
+        }
+
+        return ventas;
+    }
+
+    public Venta obtenerPorId(int idVenta) {
+        String sql = "SELECT v.*, u.nombre as usuario_nombre, u.apellidos as usuario_apellido, " +
+                    "c.nombre as cliente_nombre " +
+                    "FROM ventas v " +
+                    "LEFT JOIN usuarios u ON v.id_usuario = u.id_usuario " +
+                    "LEFT JOIN clientes c ON v.id_cliente = c.id_cliente " +
+                    "WHERE v.id_venta = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, idVenta);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return mapearVenta(rs);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo venta por ID: " + e.getMessage());
+        }
+
+        return null;
+    }
+
+    public Venta obtenerPorNumero(String numeroVenta) {
+        String sql = "SELECT v.*, u.nombre as usuario_nombre, u.apellidos as usuario_apellido, " +
+                    "c.nombre as cliente_nombre " +
+                    "FROM ventas v " +
+                    "LEFT JOIN usuarios u ON v.id_usuario = u.id_usuario " +
+                    "LEFT JOIN clientes c ON v.id_cliente = c.id_cliente " +
+                    "WHERE v.numero_venta = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, numeroVenta);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return mapearVenta(rs);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo venta por número: " + e.getMessage());
+        }
+
+        return null;
+    }
+
+    public String generarNumeroVenta() {
+        String sql = "SELECT COALESCE(MAX(CAST(SUBSTRING(numero_venta, 5) AS UNSIGNED)), 0) + 1 as siguiente " +
+                    "FROM ventas WHERE numero_venta LIKE 'VTA-%'";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            if (rs.next()) {
+                int siguiente = rs.getInt("siguiente");
+                return String.format("VTA-%06d", siguiente);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error generando número de venta: " + e.getMessage());
+        }
+
+        return "VTA-000001";
+    }
+
+    public List<Venta> obtenerPorRangoFechas(LocalDate fechaInicio, LocalDate fechaFin) {
+        String sql = "SELECT v.*, u.nombre as usuario_nombre, u.apellidos as usuario_apellido, " +
+                    "c.nombre as cliente_nombre, c.apellidos as cliente_apellidos " +
+                    "FROM ventas v " +
+                    "INNER JOIN usuarios u ON v.id_usuario = u.id_usuario " +
+                    "LEFT JOIN clientes c ON v.id_cliente = c.id_cliente " +
+                    "WHERE DATE(v.fecha) BETWEEN ? AND ? " +
+                    "ORDER BY v.fecha DESC";
+
+        List<Venta> ventas = new ArrayList<>();
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setDate(1, Date.valueOf(fechaInicio));
+            stmt.setDate(2, Date.valueOf(fechaFin));
+
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                ventas.add(mapearVenta(rs));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo ventas por rango de fechas: " + e.getMessage());
+        }
+
+        return ventas;
+    }
+
+    public boolean anularVenta(int idVenta, String motivoAnulacion) {
+        String sql = "UPDATE ventas SET estado = 'ANULADA', motivo_anulacion = ? " +
+                    "WHERE id_venta = ? AND estado = 'COMPLETADA'";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, motivoAnulacion);
+            stmt.setInt(2, idVenta);
+
+            int filasAfectadas = stmt.executeUpdate();
+            return filasAfectadas > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error anulando venta: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public List<String> obtenerUsuarios() {
+        String sql = "SELECT DISTINCT CONCAT(u.nombre, ' ', u.apellidos) as nombre_completo " +
+                    "FROM ventas v " +
+                    "INNER JOIN usuarios u ON v.id_usuario = u.id_usuario " +
+                    "ORDER BY nombre_completo";
+
+        List<String> usuarios = new ArrayList<>();
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                usuarios.add(rs.getString("nombre_completo"));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo usuarios: " + e.getMessage());
+        }
+
+        return usuarios;
+    }
+
+    /**
+     * Obtiene las ventas por transferencia que no han sido validadas con OCR
+     * @return Lista de ventas por transferencia pendientes de validación OCR
+     */
+    public List<Venta> obtenerVentasTransferenciaSinValidarOCR() {
+        String sql = "SELECT v.*, u.nombre as usuario_nombre, u.apellidos as usuario_apellido, " +
+                    "c.nombre as cliente_nombre " +
+                    "FROM ventas v " +
+                    "LEFT JOIN usuarios u ON v.id_usuario = u.id_usuario " +
+                    "LEFT JOIN clientes c ON v.id_cliente = c.id_cliente " +
+                    "LEFT JOIN comprobantes_ocr ocr ON v.id_venta = ocr.id_venta " +
+                    "WHERE v.metodo_pago = 'TRANSFERENCIA' " +
+                    "AND v.estado = 'COMPLETADA' " +
+                    "AND ocr.id_comprobante IS NULL " +
+                    "ORDER BY v.fecha DESC";
+
+        List<Venta> ventasPendientes = new ArrayList<>();
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                ventasPendientes.add(mapearVenta(rs));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo ventas por transferencia sin validar OCR: " + e.getMessage());
+        }
+
+        return ventasPendientes;
+    }
+
+    /**
+     * Verifica si una venta tiene comprobante OCR validado
+     * @param idVenta ID de la venta a verificar
+     * @return true si tiene comprobante validado, false en caso contrario
+     */
+    public boolean tieneComprobanteOCRValidado(int idVenta) {
+        String sql = "SELECT COUNT(*) FROM comprobantes_ocr " +
+                    "WHERE id_venta = ? AND estado_validacion = 'VALIDADO'";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, idVenta);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error verificando comprobante OCR: " + e.getMessage());
         }
 
         return false;
     }
 
-    // Obtener estadísticas de ventas
-    public VentaEstadisticas obtenerEstadisticas(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
-        String sql = "SELECT COUNT(*) as total_ventas, SUM(total) as total_ingresos, " +
-                "AVG(total) as promedio_venta FROM ventas " +
-                "WHERE fecha_venta BETWEEN ? AND ? AND estado = 'COMPLETADA'";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setTimestamp(1, Timestamp.valueOf(fechaInicio));
-            pstmt.setTimestamp(2, Timestamp.valueOf(fechaFin));
-            ResultSet rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                return new VentaEstadisticas(
-                        rs.getInt("total_ventas"),
-                        rs.getBigDecimal("total_ingresos"),
-                        rs.getBigDecimal("promedio_venta")
-                );
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error al obtener estadísticas: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return new VentaEstadisticas(0, BigDecimal.ZERO, BigDecimal.ZERO);
-    }
-
-    // Obtener productos más vendidos
-    public List<ProductoVendido> obtenerProductosMasVendidos(LocalDateTime fechaInicio, LocalDateTime fechaFin, int limite) {
-        List<ProductoVendido> productos = new ArrayList<>();
-        String sql = "SELECT p.nombre, SUM(dv.cantidad) as total_vendido, " +
-                "SUM(dv.subtotal) as total_ingresos " +
-                "FROM detalle_ventas dv " +
-                "INNER JOIN productos p ON dv.id_producto = p.id_producto " +
-                "INNER JOIN ventas v ON dv.id_venta = v.id_venta " +
-                "WHERE v.fecha_venta BETWEEN ? AND ? AND v.estado = 'COMPLETADA' " +
-                "GROUP BY p.id_producto, p.nombre " +
-                "ORDER BY total_vendido DESC " +
-                "LIMIT ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setTimestamp(1, Timestamp.valueOf(fechaInicio));
-            pstmt.setTimestamp(2, Timestamp.valueOf(fechaFin));
-            pstmt.setInt(3, limite);
-            ResultSet rs = pstmt.executeQuery();
-
-            while (rs.next()) {
-                productos.add(new ProductoVendido(
-                        rs.getString("nombre"),
-                        rs.getInt("total_vendido"),
-                        rs.getBigDecimal("total_ingresos")
-                ));
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error al obtener productos más vendidos: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return productos;
-    }
-
-    // Métodos privados auxiliares
-    private void cargarDetallesVenta(Venta venta) {
-        String sql = "SELECT dv.*, p.nombre, p.codigo_barras, c.nombre as categoria_nombre " +
-                "FROM detalle_ventas dv " +
-                "INNER JOIN productos p ON dv.id_producto = p.id_producto " +
-                "INNER JOIN categorias c ON p.id_categoria = c.id_categoria " +
-                "WHERE dv.id_venta = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, venta.getIdVenta());
-            ResultSet rs = pstmt.executeQuery();
-
-            List<DetalleVenta> detalles = new ArrayList<>();
-            while (rs.next()) {
-                DetalleVenta detalle = mapearDetalleVenta(rs);
-                detalles.add(detalle);
-            }
-
-            venta.setDetalles(detalles);
-
-        } catch (SQLException e) {
-            System.err.println("Error al cargar detalles de venta: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
     private Venta mapearVenta(ResultSet rs) throws SQLException {
         Venta venta = new Venta();
+
         venta.setIdVenta(rs.getInt("id_venta"));
         venta.setNumeroVenta(rs.getString("numero_venta"));
+        venta.setFecha(rs.getTimestamp("fecha").toLocalDateTime());
+        venta.setSubtotal(rs.getBigDecimal("subtotal"));
+        venta.setIva(rs.getBigDecimal("iva"));
+        venta.setTotal(rs.getBigDecimal("total"));
+        venta.setMetodoPago(rs.getString("metodo_pago"));
+        venta.setEstado(rs.getString("estado"));
 
-        Timestamp fechaVenta = rs.getTimestamp("fecha_venta");
-        if (fechaVenta != null) {
-            venta.setFechaVenta(fechaVenta.toLocalDateTime());
-        }
-
-        // Mapear usuario básico
+        // Mapear usuario
         Usuario usuario = new Usuario();
         usuario.setIdUsuario(rs.getInt("id_usuario"));
-        usuario.setNombreUsuario(rs.getString("nombre_usuario"));
-        usuario.setNombre(rs.getString("nombre"));
-        usuario.setApellidos(rs.getString("apellidos"));
+        usuario.setNombre(rs.getString("usuario_nombre"));
+        usuario.setApellido(rs.getString("usuario_apellido"));
         venta.setUsuario(usuario);
 
-        venta.setMetodoPago(rs.getString("metodo_pago"));
-        venta.setSubtotal(rs.getBigDecimal("subtotal"));
-        venta.setImpuestos(rs.getBigDecimal("impuestos"));
-        venta.setTotal(rs.getBigDecimal("total"));
-        venta.setEstado(rs.getString("estado"));
-        venta.setObservaciones(rs.getString("observaciones"));
-        venta.setReferenciaTransferencia(rs.getString("referencia_transferencia"));
-
-        // Fechas de anulación
-        Timestamp fechaAnulacion = rs.getTimestamp("fecha_anulacion");
-        if (fechaAnulacion != null) {
-            venta.setFechaAnulacion(fechaAnulacion.toLocalDateTime());
-        }
-        venta.setMotivoAnulacion(rs.getString("motivo_anulacion"));
-
-        Object anuladoPor = rs.getObject("anulado_por");
-        if (anuladoPor != null) {
-            venta.setAnuladoPor((Integer) anuladoPor);
+        // Mapear cliente si existe
+        int idCliente = rs.getInt("id_cliente");
+        if (!rs.wasNull()) {
+            Cliente cliente = new Cliente();
+            cliente.setIdCliente(idCliente);
+            cliente.setNombre(rs.getString("cliente_nombre"));
+            venta.setCliente(cliente);
         }
 
         return venta;
-    }
-
-    private DetalleVenta mapearDetalleVenta(ResultSet rs) throws SQLException {
-        DetalleVenta detalle = new DetalleVenta();
-        detalle.setIdDetalle(rs.getInt("id_detalle"));
-        detalle.setCantidad(rs.getInt("cantidad"));
-        detalle.setPrecioUnitario(rs.getBigDecimal("precio_unitario"));
-        detalle.setSubtotal(rs.getBigDecimal("subtotal"));
-        detalle.setDescuento(rs.getBigDecimal("descuento"));
-
-        // Mapear producto básico
-        Producto producto = new Producto();
-        producto.setIdProducto(rs.getInt("id_producto"));
-        producto.setNombre(rs.getString("nombre"));
-        producto.setCodigoBarras(rs.getString("codigo_barras"));
-
-        // Categoría básica
-        Categoria categoria = new Categoria();
-        categoria.setNombre(rs.getString("categoria_nombre"));
-        producto.setCategoria(categoria);
-
-        detalle.setProducto(producto);
-
-        return detalle;
-    }
-
-    // Clases auxiliares para estadísticas
-    public static class VentaEstadisticas {
-        private int totalVentas;
-        private BigDecimal totalIngresos;
-        private BigDecimal promedioVenta;
-
-        public VentaEstadisticas(int totalVentas, BigDecimal totalIngresos, BigDecimal promedioVenta) {
-            this.totalVentas = totalVentas;
-            this.totalIngresos = totalIngresos != null ? totalIngresos : BigDecimal.ZERO;
-            this.promedioVenta = promedioVenta != null ? promedioVenta : BigDecimal.ZERO;
-        }
-
-        // Getters
-        public int getTotalVentas() { return totalVentas; }
-        public BigDecimal getTotalIngresos() { return totalIngresos; }
-        public BigDecimal getPromedioVenta() { return promedioVenta; }
-    }
-
-    public static class ProductoVendido {
-        private String nombre;
-        private int cantidadVendida;
-        private BigDecimal totalIngresos;
-
-        public ProductoVendido(String nombre, int cantidadVendida, BigDecimal totalIngresos) {
-            this.nombre = nombre;
-            this.cantidadVendida = cantidadVendida;
-            this.totalIngresos = totalIngresos != null ? totalIngresos : BigDecimal.ZERO;
-        }
-
-        // Getters
-        public String getNombre() { return nombre; }
-        public int getCantidadVendida() { return cantidadVendida; }
-        public BigDecimal getTotalIngresos() { return totalIngresos; }
     }
 }

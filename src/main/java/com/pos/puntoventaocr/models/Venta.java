@@ -8,88 +8,100 @@ import java.util.List;
 public class Venta {
     private int idVenta;
     private String numeroVenta;
-    private LocalDateTime fechaVenta;
+    private LocalDateTime fecha;
     private Usuario usuario;
-    private String metodoPago;
+    private Cliente cliente;
     private BigDecimal subtotal;
-    private BigDecimal impuestos;
+    private BigDecimal iva;
     private BigDecimal total;
+    private String metodoPago;
     private String estado;
-    private String observaciones;
-    private LocalDateTime fechaAnulacion;
     private String motivoAnulacion;
-    private Integer anuladoPor;
     private List<DetalleVenta> detalles;
-    private String referenciaTransferencia;
+    private LocalDateTime fechaCreacion;
+    private boolean comprobanteTransferenciaSubido;
 
     // Constructor vacío
     public Venta() {
         this.detalles = new ArrayList<>();
-        this.fechaVenta = LocalDateTime.now();
+        this.fecha = LocalDateTime.now();
+        this.fechaCreacion = LocalDateTime.now();
         this.estado = "COMPLETADA";
         this.subtotal = BigDecimal.ZERO;
-        this.impuestos = BigDecimal.ZERO;
+        this.iva = BigDecimal.ZERO;
         this.total = BigDecimal.ZERO;
-        this.numeroVenta = generarNumeroVenta();
+        this.comprobanteTransferenciaSubido = false;
     }
 
-    // Constructor con parámetros
-    public Venta(Usuario usuario, String metodoPago) {
+    // Constructor con parámetros básicos
+    public Venta(String numeroVenta, Usuario usuario) {
         this();
+        this.numeroVenta = numeroVenta;
         this.usuario = usuario;
+    }
+
+    // Constructor completo
+    public Venta(String numeroVenta, Usuario usuario, Cliente cliente, String metodoPago) {
+        this();
+        this.numeroVenta = numeroVenta;
+        this.usuario = usuario;
+        this.cliente = cliente;
         this.metodoPago = metodoPago;
     }
 
     // Métodos de negocio
-    private String generarNumeroVenta() {
-        return "V" + System.currentTimeMillis();
-    }
-
     public void agregarDetalle(DetalleVenta detalle) {
-        detalles.add(detalle);
-        detalle.setVenta(this);
+        this.detalles.add(detalle);
         calcularTotales();
     }
 
-    public void eliminarDetalle(DetalleVenta detalle) {
-        detalles.remove(detalle);
+    public void removerDetalle(DetalleVenta detalle) {
+        this.detalles.remove(detalle);
         calcularTotales();
     }
 
     public void calcularTotales() {
-        subtotal = BigDecimal.ZERO;
+        this.subtotal = BigDecimal.ZERO;
 
         for (DetalleVenta detalle : detalles) {
-            subtotal = subtotal.add(detalle.getSubtotal());
+            this.subtotal = this.subtotal.add(detalle.getSubtotal());
         }
 
         // Calcular IVA (16%)
-        impuestos = subtotal.multiply(BigDecimal.valueOf(0.16));
-        total = subtotal.add(impuestos);
-    }
+        this.iva = this.subtotal.multiply(new BigDecimal("0.16"));
 
-    public void anular(String motivo, Integer usuarioAnula) {
-        this.estado = "ANULADA";
-        this.motivoAnulacion = motivo;
-        this.fechaAnulacion = LocalDateTime.now();
-        this.anuladoPor = usuarioAnula;
+        // Calcular total
+        this.total = this.subtotal.add(this.iva);
     }
 
     public boolean puedeAnularse() {
-        return "COMPLETADA".equals(estado) &&
-                fechaVenta.isAfter(LocalDateTime.now().minusDays(1)); // Solo el mismo día
+        return "COMPLETADA".equals(this.estado);
     }
 
-    public boolean esTransferencia() {
-        return "TRANSFERENCIA".equals(metodoPago);
-    }
-
-    public boolean tieneTransferenciaValidada() {
-        return esTransferencia() && referenciaTransferencia != null && !referenciaTransferencia.isEmpty();
+    public void anular(String motivo) {
+        if (puedeAnularse()) {
+            this.estado = "ANULADA";
+            this.motivoAnulacion = motivo;
+        }
     }
 
     public int getCantidadArticulos() {
-        return detalles.stream().mapToInt(DetalleVenta::getCantidad).sum();
+        return detalles.stream().mapToInt(detalle -> detalle.getCantidad().intValue()).sum();
+    }
+
+    public String generarResumenVenta() {
+        StringBuilder resumen = new StringBuilder();
+        resumen.append("Venta: ").append(numeroVenta).append("\n");
+        resumen.append("Fecha: ").append(fecha.toString()).append("\n");
+        resumen.append("Usuario: ").append(usuario.getNombreCompleto()).append("\n");
+        if (cliente != null) {
+            resumen.append("Cliente: ").append(cliente.getNombreCompleto()).append("\n");
+        }
+        resumen.append("Método de pago: ").append(metodoPago).append("\n");
+        resumen.append("Productos: ").append(detalles.size()).append("\n");
+        resumen.append("Total: $").append(total).append("\n");
+        resumen.append("Estado: ").append(estado);
+        return resumen.toString();
     }
 
     // Getters y Setters
@@ -109,12 +121,12 @@ public class Venta {
         this.numeroVenta = numeroVenta;
     }
 
-    public LocalDateTime getFechaVenta() {
-        return fechaVenta;
+    public LocalDateTime getFecha() {
+        return fecha;
     }
 
-    public void setFechaVenta(LocalDateTime fechaVenta) {
-        this.fechaVenta = fechaVenta;
+    public void setFecha(LocalDateTime fecha) {
+        this.fecha = fecha;
     }
 
     public Usuario getUsuario() {
@@ -125,12 +137,12 @@ public class Venta {
         this.usuario = usuario;
     }
 
-    public String getMetodoPago() {
-        return metodoPago;
+    public Cliente getCliente() {
+        return cliente;
     }
 
-    public void setMetodoPago(String metodoPago) {
-        this.metodoPago = metodoPago;
+    public void setCliente(Cliente cliente) {
+        this.cliente = cliente;
     }
 
     public BigDecimal getSubtotal() {
@@ -141,12 +153,12 @@ public class Venta {
         this.subtotal = subtotal;
     }
 
-    public BigDecimal getImpuestos() {
-        return impuestos;
+    public BigDecimal getIva() {
+        return iva;
     }
 
-    public void setImpuestos(BigDecimal impuestos) {
-        this.impuestos = impuestos;
+    public void setIva(BigDecimal iva) {
+        this.iva = iva;
     }
 
     public BigDecimal getTotal() {
@@ -157,28 +169,20 @@ public class Venta {
         this.total = total;
     }
 
+    public String getMetodoPago() {
+        return metodoPago;
+    }
+
+    public void setMetodoPago(String metodoPago) {
+        this.metodoPago = metodoPago;
+    }
+
     public String getEstado() {
         return estado;
     }
 
     public void setEstado(String estado) {
         this.estado = estado;
-    }
-
-    public String getObservaciones() {
-        return observaciones;
-    }
-
-    public void setObservaciones(String observaciones) {
-        this.observaciones = observaciones;
-    }
-
-    public LocalDateTime getFechaAnulacion() {
-        return fechaAnulacion;
-    }
-
-    public void setFechaAnulacion(LocalDateTime fechaAnulacion) {
-        this.fechaAnulacion = fechaAnulacion;
     }
 
     public String getMotivoAnulacion() {
@@ -189,32 +193,76 @@ public class Venta {
         this.motivoAnulacion = motivoAnulacion;
     }
 
-    public Integer getAnuladoPor() {
-        return anuladoPor;
-    }
-
-    public void setAnuladoPor(Integer anuladoPor) {
-        this.anuladoPor = anuladoPor;
-    }
-
     public List<DetalleVenta> getDetalles() {
         return detalles;
     }
 
     public void setDetalles(List<DetalleVenta> detalles) {
         this.detalles = detalles;
+        calcularTotales();
     }
 
-    public String getReferenciaTransferencia() {
-        return referenciaTransferencia;
+    public LocalDateTime getFechaCreacion() {
+        return fechaCreacion;
     }
 
-    public void setReferenciaTransferencia(String referenciaTransferencia) {
-        this.referenciaTransferencia = referenciaTransferencia;
+    public void setFechaCreacion(LocalDateTime fechaCreacion) {
+        this.fechaCreacion = fechaCreacion;
+    }
+
+    public boolean isComprobanteTransferenciaSubido() {
+        return comprobanteTransferenciaSubido;
+    }
+
+    public void setComprobanteTransferenciaSubido(boolean comprobanteTransferenciaSubido) {
+        this.comprobanteTransferenciaSubido = comprobanteTransferenciaSubido;
+    }
+
+    // Métodos adicionales que necesitan los controladores
+    public String getFechaVenta() {
+        return fecha != null ? fecha.toLocalDate().toString() : "";
+    }
+
+    public String getNombreUsuario() {
+        return usuario != null ? usuario.getNombreCompleto() : "";
+    }
+
+    public String getNombreCliente() {
+        return cliente != null ? cliente.getNombre() : "Cliente General";
+    }
+
+    public double getTotalDouble() {
+        return total != null ? total.doubleValue() : 0.0;
+    }
+
+    public double getSubtotalDouble() {
+        return subtotal != null ? subtotal.doubleValue() : 0.0;
+    }
+
+    public double getIvaDouble() {
+        return iva != null ? iva.doubleValue() : 0.0;
     }
 
     @Override
     public String toString() {
-        return "Venta #" + numeroVenta + " - $" + total + " (" + estado + ")";
+        return "Venta{" +
+                "numeroVenta='" + numeroVenta + '\'' +
+                ", fecha=" + fecha +
+                ", total=" + total +
+                ", estado='" + estado + '\'' +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Venta venta = (Venta) obj;
+        return idVenta == venta.idVenta;
+    }
+
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(idVenta);
     }
 }

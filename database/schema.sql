@@ -1,6 +1,6 @@
 -- Crear base de datos
-CREATE DATABASE IF NOT EXISTS punto_venta_ocr;
-USE punto_venta_ocr;
+CREATE DATABASE IF NOT EXISTS punto_venta;
+USE punto_venta;
 
 -- Tabla de Roles
 CREATE TABLE IF NOT EXISTS roles (
@@ -196,6 +196,7 @@ CREATE TABLE IF NOT EXISTS alertas_stock (
     FOREIGN KEY (id_usuario_notificado) REFERENCES usuarios(id_usuario)
     );
 
+-- Índices
 CREATE INDEX idx_usuarios_nombre ON usuarios(nombre_usuario);
 CREATE INDEX idx_productos_codigo ON productos(codigo_barras);
 CREATE INDEX idx_ventas_fecha ON ventas(fecha);

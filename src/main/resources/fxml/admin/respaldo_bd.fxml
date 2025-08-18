@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pos.puntoventaocr.controllers.RespaldoBDController" prefWidth="1000.0" prefHeight="700.0">
+   <children>
+      <!-- Título -->
+      <HBox alignment="CENTER_LEFT" style="-fx-background-color: #f8f9fa; -fx-padding: 15;" prefHeight="60.0">
+         <children>
+            <Label style="-fx-font-size: 20px; -fx-font-weight: bold;" text="Respaldo y Restauración de Base de Datos" />
+         </children>
+      </HBox>
+
+      <!-- Contenido principal con pestañas -->
+      <TabPane VBox.vgrow="ALWAYS" style="-fx-padding: 15;">
+         <tabs>
+            <!-- Pestaña de Respaldo -->
+            <Tab text="Crear Respaldo" closable="false">
+               <content>
+                  <VBox spacing="15.0">
+                     <children>
+                        <!-- Estado actual -->
+                        <VBox spacing="10.0" style="-fx-padding: 15; -fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-radius: 5;">
+                           <children>
+                              <Label fx:id="lblEstado" style="-fx-font-weight: bold;" text="Listo para crear respaldo" />
+                              <ProgressBar fx:id="progressBar" prefWidth="500.0" visible="false" />
+                           </children>
+                        </VBox>
+
+                        <!-- Configuración de respaldo -->
+                        <HBox spacing="20.0">
+                           <children>
+                              <VBox spacing="15.0" HBox.hgrow="ALWAYS">
+                                 <children>
+                                    <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="Configuración del Respaldo" />
+
+                                    <VBox spacing="10.0">
+                                       <children>
+                                          <VBox spacing="5.0">
+                                             <children>
+                                                <Label text="Ruta de Destino:" />
+                                                <HBox spacing="10.0">
+                                                   <children>
+                                                      <TextField fx:id="txtRutaRespaldo" HBox.hgrow="ALWAYS" editable="false" />
+                                                      <Button fx:id="btnSeleccionarRuta" onAction="#seleccionarRutaRespaldo" text="Examinar" style="-fx-background-color: #6c757d; -fx-text-fill: white;" />
+                                                   </children>
+                                                </HBox>
+                                             </children>
+                                          </VBox>
+
+                                          <VBox spacing="8.0">
+                                             <children>
+                                                <Label text="Opciones:" />
+                                                <CheckBox fx:id="chkIncluirDatos" text="Incluir datos de las tablas" selected="true" />
+                                                <CheckBox fx:id="chkComprimirRespaldo" text="Comprimir archivo de respaldo" selected="true" />
+                                             </children>
+                                          </VBox>
+
+                                          <Button fx:id="btnCrearRespaldo" onAction="#crearRespaldo" text="Crear Respaldo" style="-fx-background-color: #28a745; -fx-text-fill: white; -fx-font-weight: bold;" prefWidth="150.0" />
+                                       </children>
+                                    </VBox>
+                                 </children>
+                              </VBox>
+
+                              <!-- Log de actividad -->
+                              <VBox spacing="10.0" prefWidth="400.0">
+                                 <children>
+                                    <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="Log de Actividad" />
+                                    <TextArea fx:id="txtLog" VBox.vgrow="ALWAYS" editable="false" wrapText="true" prefHeight="200.0" />
+                                 </children>
+                              </VBox>
+                           </children>
+                        </HBox>
+                     </children>
+                  </VBox>
+               </content>
+            </Tab>
+
+            <!-- Pestaña de Restauración -->
+            <Tab text="Restaurar Base de Datos" closable="false">
+               <content>
+                  <VBox spacing="20.0" style="-fx-padding: 20;">
+                     <children>
+                        <!-- Advertencia -->
+                        <VBox spacing="10.0" style="-fx-padding: 15; -fx-background-color: #fff3cd; -fx-border-color: #ffc107; -fx-border-radius: 5;">
+                           <children>
+                              <Label style="-fx-font-weight: bold; -fx-text-fill: #856404;" text="⚠️ ADVERTENCIA" />
+                              <Label style="-fx-text-fill: #856404;" text="La restauración de la base de datos reemplazará todos los datos actuales. Esta operación NO se puede deshacer." wrapText="true" />
+                              <Label style="-fx-text-fill: #856404;" text="Asegúrese de tener un respaldo actual antes de proceder." wrapText="true" />
+                           </children>
+                        </VBox>
+
+                        <VBox spacing="15.0">
+                           <children>
+                              <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="Seleccionar Archivo de Respaldo" />
+
+                              <VBox spacing="10.0">
+                                 <children>
+                                    <VBox spacing="5.0">
+                                       <children>
+                                          <Label text="Archivo de Respaldo (.sql):" />
+                                          <HBox spacing="10.0">
+                                             <children>
+                                                <TextField fx:id="txtArchivoRestaurar" HBox.hgrow="ALWAYS" editable="false" promptText="Seleccione el archivo de respaldo..." />
+                                                <Button fx:id="btnSeleccionarArchivo" onAction="#seleccionarArchivoRestaurar" text="Examinar" style="-fx-background-color: #6c757d; -fx-text-fill: white;" />
+                                             </children>
+                                          </HBox>
+                                       </children>
+                                    </VBox>
+
+                                    <CheckBox fx:id="chkConfirmarRestauracion" text="Confirmo que deseo restaurar la base de datos y entiendo que esta operación no se puede deshacer" wrapText="true" />
+
+                                    <Button fx:id="btnRestaurar" onAction="#restaurarBaseDatos" text="Restaurar Base de Datos" style="-fx-background-color: #dc3545; -fx-text-fill: white; -fx-font-weight: bold;" prefWidth="200.0" />
+                                 </children>
+                              </VBox>
+                           </children>
+                        </VBox>
+                     </children>
+                  </VBox>
+               </content>
+            </Tab>
+
+            <!-- Pestaña de Configuración Automática -->
+            <Tab text="Respaldo Automático" closable="false">
+               <content>
+                  <VBox spacing="20.0" style="-fx-padding: 20;">
+                     <children>
+                        <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="Configuración de Respaldo Automático" />
+
+                        <VBox spacing="15.0">
+                           <children>
+                              <CheckBox fx:id="chkRespaldoAutomatico" text="Habilitar respaldo automático" />
+
+                              <GridPane hgap="15.0" vgap="10.0">
+                                 <columnConstraints>
+                                    <ColumnConstraints hgrow="SOMETIMES" prefWidth="150.0" />
+                                    <ColumnConstraints hgrow="SOMETIMES" prefWidth="200.0" />
+                                 </columnConstraints>
+                                 <children>
+                                    <Label text="Frecuencia:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                                    <ComboBox fx:id="cmbFrecuencia" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+                                    <Label text="Hora (HH:mm):" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                                    <TextField fx:id="txtHoraRespaldo" prefWidth="200.0" promptText="Ej: 02:00" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                                 </children>
+                              </GridPane>
+
+                              <Button fx:id="btnGuardarConfiguracion" onAction="#guardarConfiguracionAutomatica" text="Guardar Configuración" style="-fx-background-color: #007bff; -fx-text-fill: white;" prefWidth="180.0" />
+                           </children>
+                        </VBox>
+
+                        <Separator />
+
+                        <VBox spacing="10.0">
+                           <children>
+                              <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="Información" />
+                              <Label style="-fx-text-fill: gray;" text="• Los respaldos automáticos se guardarán en la misma ubicación configurada para respaldos manuales" wrapText="true" />
+                              <Label style="-fx-text-fill: gray;" text="• Se mantendrán los últimos 30 respaldos automáticos" wrapText="true" />
+                              <Label style="-fx-text-fill: gray;" text="• El sistema debe estar en ejecución para que se realicen los respaldos automáticos" wrapText="true" />
+                           </children>
+                        </VBox>
+                     </children>
+                  </VBox>
+               </content>
+            </Tab>
+
+            <!-- Pestaña de Historial -->
+            <Tab text="Historial" closable="false">
+               <content>
+                  <VBox spacing="15.0" style="-fx-padding: 15;">
+                     <children>
+                        <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="Historial de Respaldos" />
+
+                        <TableView fx:id="tablaHistorial" VBox.vgrow="ALWAYS">
+                           <columns>
+                              <TableColumn fx:id="colFecha" prefWidth="150.0" text="Fecha y Hora" />
+                              <TableColumn fx:id="colArchivo" prefWidth="250.0" text="Nombre del Archivo" />
+                              <TableColumn fx:id="colTamaño" prefWidth="100.0" text="Tamaño" />
+                              <TableColumn fx:id="colTipo" prefWidth="120.0" text="Tipo" />
+                              <TableColumn fx:id="colEstado" prefWidth="100.0" text="Estado" />
+                           </columns>
+                        </TableView>
+                     </children>
+                  </VBox>
+               </content>
+            </Tab>
+         </tabs>
+      </TabPane>
+   </children>
+</VBox>

@@ -3,252 +3,255 @@ package com.pos.puntoventaocr.dao;
 import com.pos.puntoventaocr.config.DatabaseConnection;
 import com.pos.puntoventaocr.models.Categoria;
 
-import java.sql.*;  // aquí ya están todos: Connection, PreparedStatement, Statement, ResultSet
-import java.time.LocalDateTime;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-
-
 public class CategoriaDAO {
 
-    // Crear nueva categoría
     public boolean crear(Categoria categoria) {
-        String sql = "INSERT INTO categorias (nombre, descripcion, estado, creado_por) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO categorias (nombre, descripcion, categoria_padre, icono, estado, creado_por) " +
+                    "VALUES (?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-            pstmt.setString(1, categoria.getNombre());
-            pstmt.setString(2, categoria.getDescripcion());
-            pstmt.setBoolean(3, categoria.isEstado());
-            pstmt.setObject(4, categoria.getCreadoPor());
+            stmt.setString(1, categoria.getNombre());
+            stmt.setString(2, categoria.getDescripcion());
+            stmt.setObject(3, categoria.getCategoriaPadre());
+            stmt.setString(4, categoria.getIcono());
+            // Convertir estado String a Boolean
+            stmt.setBoolean(5, "ACTIVO".equals(categoria.getEstado()));
+            stmt.setObject(6, categoria.getCreadoPor());
 
-            int filasAfectadas = pstmt.executeUpdate();
+            int filasAfectadas = stmt.executeUpdate();
 
             if (filasAfectadas > 0) {
-                ResultSet rs = pstmt.getGeneratedKeys();
-                if (rs.next()) {
-                    categoria.setIdCategoria(rs.getInt(1));
+                ResultSet keys = stmt.getGeneratedKeys();
+                if (keys.next()) {
+                    categoria.setIdCategoria(keys.getInt(1));
                 }
                 return true;
             }
+            return false;
 
         } catch (SQLException e) {
-            System.err.println("Error al crear categoría: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error creando categoría: " + e.getMessage());
+            return false;
         }
-
-        return false;
     }
 
-    // Actualizar categoría existente
     public boolean actualizar(Categoria categoria) {
-        String sql = "UPDATE categorias SET nombre = ?, descripcion = ?, estado = ?, " +
-                "fecha_modificacion = CURRENT_TIMESTAMP, modificado_por = ? WHERE id_categoria = ?";
+        String sql = "UPDATE categorias SET nombre = ?, descripcion = ?, categoria_padre = ?, " +
+                    "icono = ?, estado = ?, modificado_por = ?, fecha_modificacion = CURRENT_TIMESTAMP " +
+                    "WHERE id_categoria = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, categoria.getNombre());
-            pstmt.setString(2, categoria.getDescripcion());
-            pstmt.setBoolean(3, categoria.isEstado());
-            pstmt.setObject(4, categoria.getModificadoPor());
-            pstmt.setInt(5, categoria.getIdCategoria());
+            stmt.setString(1, categoria.getNombre());
+            stmt.setString(2, categoria.getDescripcion());
+            stmt.setObject(3, categoria.getCategoriaPadre());
+            stmt.setString(4, categoria.getIcono());
+            // Convertir estado String a Boolean
+            stmt.setBoolean(5, "ACTIVO".equals(categoria.getEstado()));
+            stmt.setObject(6, categoria.getModificadoPor());
+            stmt.setInt(7, categoria.getIdCategoria());
 
-            return pstmt.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("Error al actualizar categoría: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return false;
-    }
-
-    // Buscar categoría por ID
-    public Categoria buscarPorId(int idCategoria) {
-        String sql = "SELECT * FROM categorias WHERE id_categoria = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, idCategoria);
-            ResultSet rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                return mapearCategoria(rs);
-            }
+            return stmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            System.err.println("Error al buscar categoría por ID: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error actualizando categoría: " + e.getMessage());
+            return false;
         }
-
-        return null;
     }
 
-    // Buscar categoría por nombre
-    public Categoria buscarPorNombre(String nombre) {
-        String sql = "SELECT * FROM categorias WHERE nombre = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, nombre);
-            ResultSet rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                return mapearCategoria(rs);
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error al buscar categoría por nombre: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return null;
-    }
-
-    // Listar todas las categorías
-    public List<Categoria> listarTodas() {
-        List<Categoria> categorias = new ArrayList<>();
-        String sql = "SELECT * FROM categorias ORDER BY nombre";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
-                categorias.add(mapearCategoria(rs));
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error al listar categorías: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return categorias;
-    }
-
-    // Listar solo categorías activas
-    public List<Categoria> listarActivas() {
-        List<Categoria> categorias = new ArrayList<>();
-        String sql = "SELECT * FROM categorias WHERE estado = TRUE ORDER BY nombre";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
-                categorias.add(mapearCategoria(rs));
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error al listar categorías activas: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return categorias;
-    }
-
-    // Eliminar categoría (soft delete)
     public boolean eliminar(int idCategoria) {
-        String sql = "UPDATE categorias SET estado = FALSE WHERE id_categoria = ?";
+        String sql = "DELETE FROM categorias WHERE id_categoria = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            pstmt.setInt(1, idCategoria);
-            return pstmt.executeUpdate() > 0;
+            stmt.setInt(1, idCategoria);
+            return stmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            System.err.println("Error al eliminar categoría: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error eliminando categoría: " + e.getMessage());
+            return false;
         }
-
-        return false;
     }
 
-    // Verificar si la categoría existe
-    public boolean existe(String nombre) {
-        return buscarPorNombre(nombre) != null;
-    }
+    public List<Categoria> obtenerTodas() {
+        String sql = "SELECT c.*, " +
+                    "(SELECT COUNT(*) FROM productos p WHERE p.id_categoria = c.id_categoria) as cantidad_productos " +
+                    "FROM categorias c " +
+                    "ORDER BY c.nombre";
 
-    // Verificar si la categoría está siendo usada por productos
-    public boolean estaEnUso(int idCategoria) {
-        String sql = "SELECT COUNT(*) FROM productos WHERE id_categoria = ? AND estado = TRUE";
+        List<Categoria> categorias = new ArrayList<>();
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
 
-            pstmt.setInt(1, idCategoria);
-            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                categorias.add(mapearCategoria(rs));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo todas las categorías: " + e.getMessage());
+        }
+
+        return categorias;
+    }
+
+    public List<Categoria> obtenerActivas() {
+        String sql = "SELECT c.*, " +
+                    "(SELECT COUNT(*) FROM productos p WHERE p.id_categoria = c.id_categoria) as cantidad_productos " +
+                    "FROM categorias c " +
+                    "WHERE c.estado = TRUE " +
+                    "ORDER BY c.nombre";
+
+        List<Categoria> categorias = new ArrayList<>();
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                categorias.add(mapearCategoria(rs));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo categorías activas: " + e.getMessage());
+        }
+
+        return categorias;
+    }
+
+    public Categoria obtenerPorId(int idCategoria) {
+        String sql = "SELECT c.*, " +
+                    "(SELECT COUNT(*) FROM productos p WHERE p.id_categoria = c.id_categoria) as cantidad_productos " +
+                    "FROM categorias c " +
+                    "WHERE c.id_categoria = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, idCategoria);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                return mapearCategoria(rs);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo categoría por ID: " + e.getMessage());
+        }
+
+        return null;
+    }
+
+    public List<Categoria> buscarPorNombre(String nombre) {
+        String sql = "SELECT c.*, " +
+                    "(SELECT COUNT(*) FROM productos p WHERE p.id_categoria = c.id_categoria) as cantidad_productos " +
+                    "FROM categorias c " +
+                    "WHERE c.nombre LIKE ? AND c.estado = TRUE " +
+                    "ORDER BY c.nombre";
+
+        List<Categoria> categorias = new ArrayList<>();
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, "%" + nombre + "%");
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                categorias.add(mapearCategoria(rs));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error buscando categorías por nombre: " + e.getMessage());
+        }
+
+        return categorias;
+    }
+
+    public boolean existeNombre(String nombre, int idCategoriaExcluir) {
+        String sql = "SELECT COUNT(*) FROM categorias WHERE nombre = ? AND id_categoria != ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, nombre);
+            stmt.setInt(2, idCategoriaExcluir);
+            ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
                 return rs.getInt(1) > 0;
             }
 
         } catch (SQLException e) {
-            System.err.println("Error al verificar uso de categoría: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error verificando existencia de nombre: " + e.getMessage());
         }
 
         return false;
     }
 
-    // Contar productos por categoría
-    public int contarProductosPorCategoria(int idCategoria) {
-        String sql = "SELECT COUNT(*) FROM productos WHERE id_categoria = ? AND estado = TRUE";
+    public boolean tieneProductos(int idCategoria) {
+        String sql = "SELECT COUNT(*) FROM productos WHERE id_categoria = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            pstmt.setInt(1, idCategoria);
-            ResultSet rs = pstmt.executeQuery();
+            stmt.setInt(1, idCategoria);
+            ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                return rs.getInt(1);
+                return rs.getInt(1) > 0;
             }
 
         } catch (SQLException e) {
-            System.err.println("Error al contar productos por categoría: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error verificando productos en categoría: " + e.getMessage());
         }
 
-        return 0;
+        return false;
     }
 
-    // Mapear ResultSet a objeto Categoria
     private Categoria mapearCategoria(ResultSet rs) throws SQLException {
         Categoria categoria = new Categoria();
+
         categoria.setIdCategoria(rs.getInt("id_categoria"));
         categoria.setNombre(rs.getString("nombre"));
         categoria.setDescripcion(rs.getString("descripcion"));
-        categoria.setEstado(rs.getBoolean("estado"));
+        categoria.setCategoriaPadre(rs.getObject("categoria_padre", Integer.class));
+        categoria.setIcono(rs.getString("icono"));
 
-        // Fechas
-        Timestamp fechaCreacion = rs.getTimestamp("fecha_creacion");
-        if (fechaCreacion != null) {
-            categoria.setFechaCreacion(fechaCreacion.toLocalDateTime());
-        }
+        // Convertir Boolean de BD a String para compatibilidad con el código Java
+        boolean estadoBD = rs.getBoolean("estado");
+        categoria.setEstado(estadoBD ? "ACTIVO" : "INACTIVO");
 
-        Timestamp fechaModificacion = rs.getTimestamp("fecha_modificacion");
-        if (fechaModificacion != null) {
-            categoria.setFechaModificacion(fechaModificacion.toLocalDateTime());
-        }
+        categoria.setFechaCreacion(rs.getTimestamp("fecha_creacion"));
+        categoria.setFechaModificacion(rs.getTimestamp("fecha_modificacion"));
+        categoria.setCreadoPor(rs.getObject("creado_por", Integer.class));
+        categoria.setModificadoPor(rs.getObject("modificado_por", Integer.class));
 
-        // IDs de usuario
-        Object creadoPor = rs.getObject("creado_por");
-        if (creadoPor != null) {
-            categoria.setCreadoPor((Integer) creadoPor);
-        }
-
-        Object modificadoPor = rs.getObject("modificado_por");
-        if (modificadoPor != null) {
-            categoria.setModificadoPor((Integer) modificadoPor);
+        // Mapear cantidad de productos
+        try {
+            categoria.setCantidadProductos(rs.getInt("cantidad_productos"));
+        } catch (SQLException e) {
+            categoria.setCantidadProductos(0);
         }
 
         return categoria;
+    }
+
+    // Métodos adicionales para compatibilidad
+    public boolean guardar(Categoria categoria) {
+        return crear(categoria);
+    }
+
+    public List<Categoria> obtenerCategorias() {
+        return obtenerActivas();
     }
 }

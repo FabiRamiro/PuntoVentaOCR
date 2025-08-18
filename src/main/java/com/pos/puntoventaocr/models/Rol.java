@@ -1,5 +1,6 @@
 package com.pos.puntoventaocr.models;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,12 +10,13 @@ public class Rol {
     private String descripcion;
     private List<String> permisos;
     private boolean estado;
+    private LocalDateTime fechaCreacion;
 
     // Constructor vacío
     public Rol() {
         this.permisos = new ArrayList<>();
         this.estado = true;
-        inicializarPermisos();
+        this.fechaCreacion = LocalDateTime.now();
     }
 
     // Constructor con parámetros
@@ -24,6 +26,7 @@ public class Rol {
         this.descripcion = descripcion;
         this.permisos = new ArrayList<>();
         this.estado = true;
+        this.fechaCreacion = LocalDateTime.now();
         inicializarPermisos();
     }
 
@@ -61,28 +64,135 @@ public class Rol {
                 // Cajero tiene permisos básicos
                 permisos.add("REALIZAR_VENTAS");
                 permisos.add("CONSULTAR_PRODUCTOS");
-                permisos.add("VER_REPORTES_BASICOS");
+                // Removido VALIDAR_OCR y VER_REPORTES_BASICOS
+                break;
+
+            default:
+                // Sin permisos por defecto
                 break;
         }
     }
 
-    // Métodos de negocio
+    // Verificar si el rol tiene un permiso específico
+    public boolean tienePermiso(String permiso) {
+        return permisos.contains(permiso.toUpperCase());
+    }
+
+    // Agregar un permiso al rol
     public void agregarPermiso(String permiso) {
-        if (!permisos.contains(permiso)) {
-            permisos.add(permiso);
+        if (!permisos.contains(permiso.toUpperCase())) {
+            permisos.add(permiso.toUpperCase());
         }
     }
 
-    public void quitarPermiso(String permiso) {
-        permisos.remove(permiso);
+    // Remover un permiso del rol
+    public void removerPermiso(String permiso) {
+        permisos.remove(permiso.toUpperCase());
     }
 
-    public boolean tienePermiso(String permiso) {
-        return permisos.contains(permiso);
+    // Métodos específicos para cada tipo de permiso
+    public boolean isPermisoVentas() {
+        return tienePermiso("REALIZAR_VENTAS");
     }
 
-    public List<String> listarPermisos() {
-        return new ArrayList<>(permisos);
+    public void setPermisoVentas(boolean permiso) {
+        if (permiso) {
+            agregarPermiso("REALIZAR_VENTAS");
+        } else {
+            removerPermiso("REALIZAR_VENTAS");
+        }
+    }
+
+    public boolean isPermisoProductos() {
+        return tienePermiso("GESTIONAR_PRODUCTOS");
+    }
+
+    public void setPermisoProductos(boolean permiso) {
+        if (permiso) {
+            agregarPermiso("GESTIONAR_PRODUCTOS");
+        } else {
+            removerPermiso("GESTIONAR_PRODUCTOS");
+        }
+    }
+
+    public boolean isPermisoInventario() {
+        return tienePermiso("GESTIONAR_INVENTARIO");
+    }
+
+    public void setPermisoInventario(boolean permiso) {
+        if (permiso) {
+            agregarPermiso("GESTIONAR_INVENTARIO");
+        } else {
+            removerPermiso("GESTIONAR_INVENTARIO");
+        }
+    }
+
+    public boolean isPermisoReportes() {
+        return tienePermiso("VER_REPORTES");
+    }
+
+    public void setPermisoReportes(boolean permiso) {
+        if (permiso) {
+            agregarPermiso("VER_REPORTES");
+        } else {
+            removerPermiso("VER_REPORTES");
+        }
+    }
+
+    public boolean isPermisoUsuarios() {
+        return tienePermiso("GESTIONAR_USUARIOS");
+    }
+
+    public void setPermisoUsuarios(boolean permiso) {
+        if (permiso) {
+            agregarPermiso("GESTIONAR_USUARIOS");
+        } else {
+            removerPermiso("GESTIONAR_USUARIOS");
+        }
+    }
+
+    public boolean isPermisoConfiguracion() {
+        return tienePermiso("GESTIONAR_SISTEMA");
+    }
+
+    public void setPermisoConfiguracion(boolean permiso) {
+        if (permiso) {
+            agregarPermiso("GESTIONAR_SISTEMA");
+        } else {
+            removerPermiso("GESTIONAR_SISTEMA");
+        }
+    }
+
+    public boolean isPermisoOCR() {
+        return tienePermiso("VALIDAR_OCR");
+    }
+
+    public void setPermisoOCR(boolean permiso) {
+        if (permiso) {
+            agregarPermiso("VALIDAR_OCR");
+        } else {
+            removerPermiso("VALIDAR_OCR");
+        }
+    }
+
+    public boolean isPermisoDevoluciones() {
+        return tienePermiso("ANULAR_VENTAS");
+    }
+
+    public void setPermisoDevoluciones(boolean permiso) {
+        if (permiso) {
+            agregarPermiso("ANULAR_VENTAS");
+        } else {
+            removerPermiso("ANULAR_VENTAS");
+        }
+    }
+
+    public boolean isActivo() {
+        return estado;
+    }
+
+    public void setActivo(boolean activo) {
+        this.estado = activo;
     }
 
     // Getters y Setters
@@ -100,7 +210,7 @@ public class Rol {
 
     public void setNombreRol(String nombreRol) {
         this.nombreRol = nombreRol;
-        inicializarPermisos(); // Reinicializar permisos si cambia el rol
+        inicializarPermisos(); // Reinicializar permisos cuando cambie el nombre del rol
     }
 
     public String getDescripcion() {
@@ -112,11 +222,11 @@ public class Rol {
     }
 
     public List<String> getPermisos() {
-        return permisos;
+        return new ArrayList<>(permisos); // Devolver una copia para evitar modificaciones externas
     }
 
     public void setPermisos(List<String> permisos) {
-        this.permisos = permisos;
+        this.permisos = new ArrayList<>(permisos);
     }
 
     public boolean isEstado() {
@@ -125,6 +235,15 @@ public class Rol {
 
     public void setEstado(boolean estado) {
         this.estado = estado;
+    }
+
+
+    public LocalDateTime getFechaCreacion() {
+        return fechaCreacion;
+    }
+
+    public void setFechaCreacion(LocalDateTime fechaCreacion) {
+        this.fechaCreacion = fechaCreacion;
     }
 
     @Override

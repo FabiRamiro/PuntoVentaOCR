@@ -2,367 +2,220 @@ package com.pos.puntoventaocr.dao;
 
 import com.pos.puntoventaocr.config.DatabaseConnection;
 import com.pos.puntoventaocr.models.ComprobanteOCR;
-import com.pos.puntoventaocr.models.ComprobanteOCR.EstadoOCR;
-import com.pos.puntoventaocr.models.Venta;
 import com.pos.puntoventaocr.models.Usuario;
+import com.pos.puntoventaocr.models.Venta;
 
 import java.math.BigDecimal;
 import java.sql.*;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ComprobanteOCRDAO {
-    private VentaDAO ventaDAO;
-    private UsuarioDAO usuarioDAO;
 
-    public ComprobanteOCRDAO() {
-        this.ventaDAO = new VentaDAO();
-        this.usuarioDAO = new UsuarioDAO();
-    }
-
-    // Crear nuevo comprobante OCR
-    public boolean crear(ComprobanteOCR comprobante) {
+    public boolean guardar(ComprobanteOCR comprobante) {
         String sql = "INSERT INTO comprobantes_ocr (id_venta, imagen_original, imagen_procesada, " +
-                "banco_emisor, cuenta_remitente, monto_detectado, fecha_transferencia, " +
-                "referencia_operacion, nombre_beneficiario, estado_validacion, datos_extraidos, " +
-                "fecha_procesamiento, observaciones) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    "banco_emisor, cuenta_remitente, monto_detectado, fecha_transferencia, " +
+                    "referencia_operacion, nombre_beneficiario, estado_validacion, datos_extraidos, " +
+                    "id_usuario_validador, observaciones) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-            pstmt.setInt(1, comprobante.getVenta().getIdVenta());
-            pstmt.setString(2, comprobante.getImagenOriginal());
-            pstmt.setString(3, comprobante.getImagenProcesada());
-            pstmt.setString(4, comprobante.getBancoEmisor());
-            pstmt.setString(5, comprobante.getCuentaRemitente());
-            pstmt.setBigDecimal(6, comprobante.getMontoDetectado());
+            stmt.setObject(1, comprobante.getVenta() != null ? comprobante.getVenta().getIdVenta() : null);
+            stmt.setString(2, comprobante.getImagenOriginal());
+            stmt.setString(3, comprobante.getImagenProcesada());
+            stmt.setString(4, comprobante.getBancoEmisor());
+            stmt.setString(5, comprobante.getCuentaRemitente());
+            stmt.setBigDecimal(6, comprobante.getMontoDetectado());
+            stmt.setObject(7, comprobante.getFechaTransferencia() != null ?
+                          Date.valueOf(comprobante.getFechaTransferencia()) : null);
+            stmt.setString(8, comprobante.getReferenciaOperacion());
+            stmt.setString(9, comprobante.getNombreBeneficiario());
+            stmt.setString(10, comprobante.getEstadoValidacion());
 
-            if (comprobante.getFechaTransferencia() != null) {
-                pstmt.setTimestamp(7, Timestamp.valueOf(comprobante.getFechaTransferencia()));
-            } else {
-                pstmt.setNull(7, Types.TIMESTAMP);
+            // Validar que datos_extraidos sea JSON válido antes de guardar
+            String datosExtraidos = comprobante.getDatosExtraidos();
+            if (datosExtraidos == null || datosExtraidos.trim().isEmpty()) {
+                datosExtraidos = "{}";
             }
 
-            pstmt.setString(8, comprobante.getReferenciaOperacion());
-            pstmt.setString(9, comprobante.getNombreBeneficiario());
-            pstmt.setString(10, comprobante.getEstadoValidacion().name());
-            pstmt.setString(11, comprobante.getDatosExtraidos());
-            pstmt.setTimestamp(12, Timestamp.valueOf(comprobante.getFechaProcesamiento()));
-            pstmt.setString(13, comprobante.getObservaciones());
+            // Verificar que el JSON sea válido antes de guardarlo
+            if (!esJSONValido(datosExtraidos)) {
+                System.err.println("⚠️ WARNING: Datos extraídos no son JSON válido, creando JSON seguro");
+                datosExtraidos = "{\"error\": \"Datos no válidos como JSON\", \"texto_raw\": \"Ver observaciones\"}";
+                // Agregar el texto original a las observaciones si hay espacio
+                String observacionesActuales = comprobante.getObservaciones();
+                if (observacionesActuales == null) {
+                    observacionesActuales = "";
+                }
+                observacionesActuales += (observacionesActuales.isEmpty() ? "" : " | ") +
+                                       "Texto OCR original disponible en logs";
+                comprobante.setObservaciones(observacionesActuales);
+            }
 
-            int filasAfectadas = pstmt.executeUpdate();
+            stmt.setString(11, datosExtraidos);
+            stmt.setObject(12, comprobante.getUsuarioValidador() != null ?
+                          comprobante.getUsuarioValidador().getIdUsuario() : null);
+            stmt.setString(13, comprobante.getObservaciones());
+
+            int filasAfectadas = stmt.executeUpdate();
 
             if (filasAfectadas > 0) {
-                ResultSet rs = pstmt.getGeneratedKeys();
-                if (rs.next()) {
-                    comprobante.setIdComprobante(rs.getInt(1));
+                ResultSet keys = stmt.getGeneratedKeys();
+                if (keys.next()) {
+                    comprobante.setIdComprobante(keys.getInt(1));
                 }
+                System.out.println("✅ Comprobante OCR guardado exitosamente con ID: " + comprobante.getIdComprobante());
                 return true;
             }
+            return false;
 
         } catch (SQLException e) {
-            System.err.println("Error al crear comprobante OCR: " + e.getMessage());
-            e.printStackTrace();
-        }
+            System.err.println("❌ Error guardando comprobante OCR: " + e.getMessage());
 
-        return false;
+            // Proporcionar información más específica sobre errores de JSON
+            if (e.getMessage().contains("Invalid JSON") || e.getMessage().contains("Data truncation")) {
+                System.err.println("🔍 Error relacionado con JSON en datos_extraidos:");
+                System.err.println("   - Verificar que el texto extraído esté bien formateado");
+                System.err.println("   - El campo datos_extraidos debe contener JSON válido");
+                String datosDebug = comprobante.getDatosExtraidos();
+                if (datosDebug != null && datosDebug.length() > 100) {
+                    System.err.println("   - Primeros 100 caracteres: " + datosDebug.substring(0, 100));
+                }
+            }
+
+            e.printStackTrace();
+            return false;
+        }
     }
 
-    // Actualizar comprobante OCR
+    public List<ComprobanteOCR> obtenerTodos() {
+        String sql = "SELECT c.*, v.numero_venta, u.nombre as usuario_nombre, u.apellidos as usuario_apellido " +
+                    "FROM comprobantes_ocr c " +
+                    "LEFT JOIN ventas v ON c.id_venta = v.id_venta " +
+                    "LEFT JOIN usuarios u ON c.id_usuario_validador = u.id_usuario " +
+                    "ORDER BY c.fecha_procesamiento DESC";
+
+        List<ComprobanteOCR> comprobantes = new ArrayList<>();
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                comprobantes.add(mapearComprobante(rs));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo comprobantes OCR: " + e.getMessage());
+        }
+
+        return comprobantes;
+    }
+
+    public List<ComprobanteOCR> obtenerPorFiltros(LocalDate fechaDesde, LocalDate fechaHasta,
+                                                  String estado, String usuario) {
+        StringBuilder sql = new StringBuilder(
+            "SELECT c.*, v.numero_venta, u.nombre as usuario_nombre, u.apellidos as usuario_apellido " +
+            "FROM comprobantes_ocr c " +
+            "LEFT JOIN ventas v ON c.id_venta = v.id_venta " +
+            "LEFT JOIN usuarios u ON c.id_usuario_validador = u.id_usuario " +
+            "WHERE 1=1 ");
+
+        List<Object> parametros = new ArrayList<>();
+
+        if (fechaDesde != null) {
+            sql.append("AND DATE(c.fecha_procesamiento) >= ? ");
+            parametros.add(Date.valueOf(fechaDesde));
+        }
+
+        if (fechaHasta != null) {
+            sql.append("AND DATE(c.fecha_procesamiento) <= ? ");
+            parametros.add(Date.valueOf(fechaHasta));
+        }
+
+        if (estado != null && !"Todos".equals(estado)) {
+            sql.append("AND c.estado_validacion = ? ");
+            parametros.add(estado);
+        }
+
+        if (usuario != null && !"Todos".equals(usuario)) {
+            sql.append("AND CONCAT(u.nombre, ' ', u.apellidos) = ? ");
+            parametros.add(usuario);
+        }
+
+        sql.append("ORDER BY c.fecha_procesamiento DESC");
+
+        List<ComprobanteOCR> comprobantes = new ArrayList<>();
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+
+            for (int i = 0; i < parametros.size(); i++) {
+                stmt.setObject(i + 1, parametros.get(i));
+            }
+
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                comprobantes.add(mapearComprobante(rs));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error obteniendo comprobantes por filtros: " + e.getMessage());
+        }
+
+        return comprobantes;
+    }
+
     public boolean actualizar(ComprobanteOCR comprobante) {
-        String sql = "UPDATE comprobantes_ocr SET imagen_procesada = ?, banco_emisor = ?, " +
-                "cuenta_remitente = ?, monto_detectado = ?, fecha_transferencia = ?, " +
-                "referencia_operacion = ?, nombre_beneficiario = ?, estado_validacion = ?, " +
-                "datos_extraidos = ?, usuario_validador = ?, observaciones = ? " +
-                "WHERE id_comprobante = ?";
+        String sql = "UPDATE comprobantes_ocr SET estado_validacion = ?, id_usuario_validador = ?, " +
+                    "observaciones = ?, fecha_validacion = CURRENT_TIMESTAMP " +
+                    "WHERE id_comprobante = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, comprobante.getImagenProcesada());
-            pstmt.setString(2, comprobante.getBancoEmisor());
-            pstmt.setString(3, comprobante.getCuentaRemitente());
-            pstmt.setBigDecimal(4, comprobante.getMontoDetectado());
+            stmt.setString(1, comprobante.getEstadoValidacion());
+            stmt.setObject(2, comprobante.getUsuarioValidador() != null ?
+                          comprobante.getUsuarioValidador().getIdUsuario() : null);
+            stmt.setString(3, comprobante.getObservaciones());
+            stmt.setInt(4, comprobante.getIdComprobante());
 
-            if (comprobante.getFechaTransferencia() != null) {
-                pstmt.setTimestamp(5, Timestamp.valueOf(comprobante.getFechaTransferencia()));
-            } else {
-                pstmt.setNull(5, Types.TIMESTAMP);
-            }
-
-            pstmt.setString(6, comprobante.getReferenciaOperacion());
-            pstmt.setString(7, comprobante.getNombreBeneficiario());
-            pstmt.setString(8, comprobante.getEstadoValidacion().name());
-            pstmt.setString(9, comprobante.getDatosExtraidos());
-
-            if (comprobante.getUsuarioValidador() != null) {
-                pstmt.setInt(10, comprobante.getUsuarioValidador().getIdUsuario());
-            } else {
-                pstmt.setNull(10, Types.INTEGER);
-            }
-
-            pstmt.setString(11, comprobante.getObservaciones());
-            pstmt.setInt(12, comprobante.getIdComprobante());
-
-            return pstmt.executeUpdate() > 0;
+            return stmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            System.err.println("Error al actualizar comprobante OCR: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error actualizando comprobante OCR: " + e.getMessage());
+            return false;
         }
-
-        return false;
     }
 
-    // Buscar comprobante por ID
-    public ComprobanteOCR buscarPorId(int idComprobante) {
-        String sql = "SELECT co.*, v.numero_venta, v.total as venta_total, " +
-                "u.nombre_usuario, u.nombre as usuario_nombre, u.apellidos as usuario_apellidos " +
-                "FROM comprobantes_ocr co " +
-                "INNER JOIN ventas v ON co.id_venta = v.id_venta " +
-                "LEFT JOIN usuarios u ON co.usuario_validador = u.id_usuario " +
-                "WHERE co.id_comprobante = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, idComprobante);
-            ResultSet rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                return mapearComprobanteOCR(rs);
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error al buscar comprobante OCR por ID: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return null;
-    }
-
-    // Buscar comprobante por referencia
-    public ComprobanteOCR buscarPorReferencia(String referencia) {
-        String sql = "SELECT co.*, v.numero_venta, v.total as venta_total, " +
-                "u.nombre_usuario, u.nombre as usuario_nombre, u.apellidos as usuario_apellidos " +
-                "FROM comprobantes_ocr co " +
-                "INNER JOIN ventas v ON co.id_venta = v.id_venta " +
-                "LEFT JOIN usuarios u ON co.usuario_validador = u.id_usuario " +
-                "WHERE co.referencia_operacion = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, referencia);
-            ResultSet rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                return mapearComprobanteOCR(rs);
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error al buscar comprobante por referencia: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return null;
-    }
-
-    // Listar comprobantes por estado
-    public List<ComprobanteOCR> listarPorEstado(EstadoOCR estado) {
-        List<ComprobanteOCR> comprobantes = new ArrayList<>();
-        String sql = "SELECT co.*, v.numero_venta, v.total as venta_total, " +
-                "u.nombre_usuario, u.nombre as usuario_nombre, u.apellidos as usuario_apellidos " +
-                "FROM comprobantes_ocr co " +
-                "INNER JOIN ventas v ON co.id_venta = v.id_venta " +
-                "LEFT JOIN usuarios u ON co.usuario_validador = u.id_usuario " +
-                "WHERE co.estado_validacion = ? " +
-                "ORDER BY co.fecha_procesamiento DESC";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, estado.name());
-            ResultSet rs = pstmt.executeQuery();
-
-            while (rs.next()) {
-                comprobantes.add(mapearComprobanteOCR(rs));
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error al listar comprobantes por estado: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return comprobantes;
-    }
-
-    // Listar comprobantes pendientes de validación
-    public List<ComprobanteOCR> listarPendientes() {
-        return listarPorEstado(EstadoOCR.PENDIENTE);
-    }
-
-    // Listar todos los comprobantes
-    public List<ComprobanteOCR> listarTodos() {
-        List<ComprobanteOCR> comprobantes = new ArrayList<>();
-        String sql = "SELECT co.*, v.numero_venta, v.total as venta_total, " +
-                "u.nombre_usuario, u.nombre as usuario_nombre, u.apellidos as usuario_apellidos " +
-                "FROM comprobantes_ocr co " +
-                "INNER JOIN ventas v ON co.id_venta = v.id_venta " +
-                "LEFT JOIN usuarios u ON co.usuario_validador = u.id_usuario " +
-                "ORDER BY co.fecha_procesamiento DESC";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
-                comprobantes.add(mapearComprobanteOCR(rs));
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error al listar comprobantes OCR: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return comprobantes;
-    }
-
-    // Listar comprobantes por fecha
-    public List<ComprobanteOCR> listarPorFecha(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
-        List<ComprobanteOCR> comprobantes = new ArrayList<>();
-        String sql = "SELECT co.*, v.numero_venta, v.total as venta_total, " +
-                "u.nombre_usuario, u.nombre as usuario_nombre, u.apellidos as usuario_apellidos " +
-                "FROM comprobantes_ocr co " +
-                "INNER JOIN ventas v ON co.id_venta = v.id_venta " +
-                "LEFT JOIN usuarios u ON co.usuario_validador = u.id_usuario " +
-                "WHERE co.fecha_procesamiento BETWEEN ? AND ? " +
-                "ORDER BY co.fecha_procesamiento DESC";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setTimestamp(1, Timestamp.valueOf(fechaInicio));
-            pstmt.setTimestamp(2, Timestamp.valueOf(fechaFin));
-            ResultSet rs = pstmt.executeQuery();
-
-            while (rs.next()) {
-                comprobantes.add(mapearComprobanteOCR(rs));
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error al listar comprobantes por fecha: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return comprobantes;
-    }
-
-    // Aprobar comprobante
-    public boolean aprobar(int idComprobante, int idUsuarioValidador) {
-        String sql = "UPDATE comprobantes_ocr SET estado_validacion = ?, usuario_validador = ? " +
-                "WHERE id_comprobante = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, EstadoOCR.VALIDADO.name());
-            pstmt.setInt(2, idUsuarioValidador);
-            pstmt.setInt(3, idComprobante);
-
-            return pstmt.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("Error al aprobar comprobante: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return false;
-    }
-
-    // Rechazar comprobante
-    public boolean rechazar(int idComprobante, int idUsuarioValidador, String motivo) {
-        String sql = "UPDATE comprobantes_ocr SET estado_validacion = ?, usuario_validador = ?, " +
-                "observaciones = ? WHERE id_comprobante = ?";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, EstadoOCR.RECHAZADO.name());
-            pstmt.setInt(2, idUsuarioValidador);
-            pstmt.setString(3, motivo);
-            pstmt.setInt(4, idComprobante);
-
-            return pstmt.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("Error al rechazar comprobante: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return false;
-    }
-
-    // Verificar si existe una referencia duplicada
     public boolean existeReferencia(String referencia) {
-        String sql = "SELECT COUNT(*) FROM comprobantes_ocr WHERE referencia_operacion = ? " +
-                "AND estado_validacion != ?";
+        if (referencia == null || referencia.trim().isEmpty()) {
+            return false;
+        }
+
+        String sql = "SELECT COUNT(*) FROM comprobantes_ocr WHERE referencia_operacion = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, referencia);
-            pstmt.setString(2, EstadoOCR.RECHAZADO.name());
-            ResultSet rs = pstmt.executeQuery();
+            stmt.setString(1, referencia.trim());
+            ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
                 return rs.getInt(1) > 0;
             }
 
         } catch (SQLException e) {
-            System.err.println("Error al verificar referencia duplicada: " + e.getMessage());
             e.printStackTrace();
         }
 
         return false;
     }
 
-    // Obtener estadísticas de comprobantes
-    public EstadisticasOCR obtenerEstadisticas() {
-        String sql = "SELECT " +
-                "SUM(CASE WHEN estado_validacion = 'PENDIENTE' THEN 1 ELSE 0 END) as pendientes, " +
-                "SUM(CASE WHEN estado_validacion = 'VALIDADO' THEN 1 ELSE 0 END) as validados, " +
-                "SUM(CASE WHEN estado_validacion = 'RECHAZADO' THEN 1 ELSE 0 END) as rechazados, " +
-                "SUM(CASE WHEN estado_validacion = 'ERROR_PROCESAMIENTO' THEN 1 ELSE 0 END) as errores, " +
-                "COUNT(*) as total " +
-                "FROM comprobantes_ocr";
-
-        try (Connection conn = DatabaseConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            if (rs.next()) {
-                return new EstadisticasOCR(
-                        rs.getInt("pendientes"),
-                        rs.getInt("validados"),
-                        rs.getInt("rechazados"),
-                        rs.getInt("errores"),
-                        rs.getInt("total")
-                );
-            }
-
-        } catch (SQLException e) {
-            System.err.println("Error al obtener estadísticas OCR: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return new EstadisticasOCR(0, 0, 0, 0, 0);
-    }
-
-    // Mapear ResultSet a ComprobanteOCR
-    private ComprobanteOCR mapearComprobanteOCR(ResultSet rs) throws SQLException {
+    private ComprobanteOCR mapearComprobante(ResultSet rs) throws SQLException {
         ComprobanteOCR comprobante = new ComprobanteOCR();
 
         comprobante.setIdComprobante(rs.getInt("id_comprobante"));
@@ -372,72 +225,77 @@ public class ComprobanteOCRDAO {
         comprobante.setCuentaRemitente(rs.getString("cuenta_remitente"));
         comprobante.setMontoDetectado(rs.getBigDecimal("monto_detectado"));
 
-        Timestamp fechaTransferencia = rs.getTimestamp("fecha_transferencia");
+        Date fechaTransferencia = rs.getDate("fecha_transferencia");
         if (fechaTransferencia != null) {
-            comprobante.setFechaTransferencia(fechaTransferencia.toLocalDateTime());
+            comprobante.setFechaTransferencia(fechaTransferencia.toLocalDate());
         }
 
         comprobante.setReferenciaOperacion(rs.getString("referencia_operacion"));
         comprobante.setNombreBeneficiario(rs.getString("nombre_beneficiario"));
-        comprobante.setEstadoValidacion(EstadoOCR.valueOf(rs.getString("estado_validacion")));
+        comprobante.setEstadoValidacion(rs.getString("estado_validacion"));
         comprobante.setDatosExtraidos(rs.getString("datos_extraidos"));
-        comprobante.setFechaProcesamiento(rs.getTimestamp("fecha_procesamiento").toLocalDateTime());
         comprobante.setObservaciones(rs.getString("observaciones"));
+        comprobante.setFechaProcesamiento(rs.getTimestamp("fecha_procesamiento").toLocalDateTime());
 
-        // Mapear venta básica
-        Venta venta = new Venta();
-        venta.setIdVenta(rs.getInt("id_venta"));
-        venta.setNumeroVenta(rs.getString("numero_venta"));
-        venta.setTotal(rs.getBigDecimal("venta_total"));
-        comprobante.setVenta(venta);
+        // Mapear venta si existe
+        int idVenta = rs.getInt("id_venta");
+        if (!rs.wasNull()) {
+            Venta venta = new Venta();
+            venta.setIdVenta(idVenta);
+            venta.setNumeroVenta(rs.getString("numero_venta"));
+            comprobante.setVenta(venta);
+        }
 
         // Mapear usuario validador si existe
-        int idUsuarioValidador = rs.getInt("usuario_validador");
+        int idUsuarioValidador = rs.getInt("id_usuario_validador");
         if (!rs.wasNull()) {
-            Usuario usuarioValidador = new Usuario();
-            usuarioValidador.setIdUsuario(idUsuarioValidador);
-            usuarioValidador.setNombreUsuario(rs.getString("nombre_usuario"));
-            usuarioValidador.setNombre(rs.getString("usuario_nombre"));
-            usuarioValidador.setApellidos(rs.getString("usuario_apellidos"));
-            comprobante.setUsuarioValidador(usuarioValidador);
+            Usuario usuario = new Usuario();
+            usuario.setIdUsuario(idUsuarioValidador);
+            usuario.setNombre(rs.getString("usuario_nombre"));
+            usuario.setApellido(rs.getString("usuario_apellido"));
+            comprobante.setUsuarioValidador(usuario);
         }
 
         return comprobante;
     }
 
-    // Clase para estadísticas OCR
-    public static class EstadisticasOCR {
-        private int pendientes;
-        private int validados;
-        private int rechazados;
-        private int errores;
-        private int total;
-
-        public EstadisticasOCR(int pendientes, int validados, int rechazados, int errores, int total) {
-            this.pendientes = pendientes;
-            this.validados = validados;
-            this.rechazados = rechazados;
-            this.errores = errores;
-            this.total = total;
+    private boolean esJSONValido(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            return false;
         }
 
-        // Getters
-        public int getPendientes() { return pendientes; }
-        public int getValidados() { return validados; }
-        public int getRechazados() { return rechazados; }
-        public int getErrores() { return errores; }
-        public int getTotal() { return total; }
+        try {
+            // Verificación básica de estructura JSON
+            String jsonTrim = json.trim();
+            if (!jsonTrim.startsWith("{") || !jsonTrim.endsWith("}")) {
+                return false;
+            }
 
-        public double getPorcentajeValidados() {
-            return total > 0 ? (validados * 100.0) / total : 0.0;
-        }
+            // Verificar que no tenga caracteres de control problemáticos
+            if (jsonTrim.matches(".*[\u0000-\u001F\u007F-\u009F].*")) {
+                return false;
+            }
 
-        public double getPorcentajeRechazados() {
-            return total > 0 ? (rechazados * 100.0) / total : 0.0;
-        }
+            // Verificar balanceo básico de llaves y comillas
+            int llaves = 0;
+            boolean enCadena = false;
+            char anterior = '\0';
 
-        public double getPorcentajePendientes() {
-            return total > 0 ? (pendientes * 100.0) / total : 0.0;
+            for (char c : jsonTrim.toCharArray()) {
+                if (c == '"' && anterior != '\\') {
+                    enCadena = !enCadena;
+                } else if (!enCadena) {
+                    if (c == '{') llaves++;
+                    else if (c == '}') llaves--;
+                }
+                anterior = c;
+            }
+
+            return llaves == 0 && !enCadena;
+
+        } catch (Exception e) {
+            System.err.println("Error validando JSON: " + e.getMessage());
+            return false;
         }
     }
 }

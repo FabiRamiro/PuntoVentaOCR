@@ -3,235 +3,183 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.text.*?>
 
-<BorderPane xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pos.puntoventaocr.controllers.NuevaVentaController">
-    <top>
-        <!-- Información de la venta -->
-        <VBox styleClass="card-header">
-            <children>
-                <HBox alignment="CENTER_LEFT">
-                    <children>
-                        <Label styleClass="label-title" text="Nueva Venta">
-                            <font>
-                                <Font name="System Bold" size="20.0" />
-                            </font>
-                        </Label>
-                        <Region HBox.hgrow="ALWAYS" />
-                        <VBox alignment="CENTER_RIGHT">
-                            <children>
-                                <Label text="Venta #" />
-                                <Label fx:id="lblNumeroVenta" styleClass="label-info" text="V001">
-                                    <font>
-                                        <Font name="System Bold" size="16.0" />
-                                    </font>
-                                </Label>
-                            </children>
-                        </VBox>
-                    </children>
-                </HBox>
+<VBox xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pos.puntoventaocr.controllers.NuevaVentaController" prefWidth="1000.0" prefHeight="700.0">
+   <children>
+      <!-- Título -->
+      <HBox alignment="CENTER_LEFT" style="-fx-background-color: #f8f9fa; -fx-padding: 15;" prefHeight="60.0">
+         <children>
+            <Label style="-fx-font-size: 20px; -fx-font-weight: bold;" text="Nueva Venta" />
+            <Region HBox.hgrow="ALWAYS" />
+            <Label fx:id="lblNumeroVenta" style="-fx-font-size: 16px; -fx-font-weight: bold;" text="Venta #: [Número]" />
+         </children>
+      </HBox>
 
-                <HBox alignment="CENTER_LEFT" spacing="20.0">
-                    <children>
-                        <VBox>
-                            <children>
-                                <Label text="Fecha y Hora:" />
-                                <Label fx:id="lblFechaHora" styleClass="label-info" text="01/01/2024 12:00:00" />
-                            </children>
-                        </VBox>
+      <!-- Contenido principal -->
+      <SplitPane dividerPositions="0.65" VBox.vgrow="ALWAYS" prefHeight="580.0">
+         <items>
+            <!-- Panel izquierdo: Productos y carrito -->
+            <VBox spacing="10.0" style="-fx-padding: 10;">
+               <children>
+                  <!-- Búsqueda de productos -->
+                  <VBox spacing="5.0">
+                     <children>
+                        <Label style="-fx-font-weight: bold;" text="Buscar Producto" />
+                        <HBox spacing="10.0">
+                           <children>
+                              <TextField fx:id="txtBuscarProducto" prefWidth="350.0" prefHeight="30.0" promptText="Código de barras, nombre o código interno..." />
+                              <Button fx:id="btnBuscarProducto" onAction="#buscarProducto" prefHeight="30.0" text="Buscar" />
+                              <Button fx:id="btnEscanearCodigo" onAction="#escanearCodigo" prefHeight="30.0" text="Escáner" />
+                           </children>
+                        </HBox>
+                     </children>
+                  </VBox>
 
-                        <VBox>
-                            <children>
-                                <Label text="Cajero:" />
-                                <Label fx:id="lblUsuario" styleClass="label-info" text="Usuario Actual" />
-                            </children>
-                        </VBox>
-                    </children>
-                    <VBox.margin>
-                        <Insets top="10.0" />
-                    </VBox.margin>
-                </HBox>
-            </children>
-            <padding>
-                <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
-            </padding>
-        </VBox>
-    </top>
-
-    <center>
-        <HBox spacing="10.0">
-            <children>
-                <!-- Panel izquierdo - Búsqueda y productos -->
-                <VBox prefWidth="400.0" spacing="10.0" styleClass="content-pane">
-                    <children>
-                        <Label styleClass="label-section" text="Búsqueda de Productos" />
-
-                        <!-- Campo de búsqueda -->
-                        <VBox spacing="5.0">
-                            <children>
-                                <Label text="Buscar por código o nombre:" />
-                                <TextField fx:id="txtBuscarProducto" onKeyPressed="#handleBuscarProducto" promptText="Escanee código de barras o escriba nombre..." />
-                            </children>
-                        </VBox>
-
-                        <!-- Lista de productos -->
-                        <TableView fx:id="tableProductos" VBox.vgrow="ALWAYS">
-                            <columns>
-                                <TableColumn fx:id="colNombreProducto" prefWidth="180.0" text="Producto" />
-                                <TableColumn fx:id="colCodigoProducto" prefWidth="100.0" text="Código" />
-                                <TableColumn fx:id="colPrecioProducto" prefWidth="80.0" text="Precio" />
-                                <TableColumn fx:id="colStockProducto" prefWidth="60.0" text="Stock" />
-                            </columns>
+                  <!-- Lista de productos encontrados -->
+                  <VBox spacing="5.0">
+                     <children>
+                        <Label style="-fx-font-weight: bold;" text="Productos Disponibles" />
+                        <TableView fx:id="tablaProductosDisponibles" prefHeight="180.0">
+                           <columns>
+                              <TableColumn fx:id="colCodigoDisponible" prefWidth="120.0" text="Código" />
+                              <TableColumn fx:id="colNombreDisponible" prefWidth="250.0" text="Nombre" />
+                              <TableColumn fx:id="colPrecioDisponible" prefWidth="100.0" text="Precio" />
+                              <TableColumn fx:id="colStockDisponible" prefWidth="80.0" text="Stock" />
+                              <TableColumn fx:id="colAccionDisponible" prefWidth="80.0" text="Acción" />
+                           </columns>
                         </TableView>
+                     </children>
+                  </VBox>
 
-                        <Button fx:id="btnAgregarProducto" maxWidth="1.7976931348623157E308" onAction="#handleAgregarProducto" styleClass="btn-primary" text="Agregar al Carrito" />
-                    </children>
-                </VBox>
-
-                <!-- Panel derecho - Carrito y pago -->
-                <VBox prefWidth="500.0" spacing="10.0" styleClass="content-pane">
-                    <children>
-                        <Label styleClass="label-section" text="Carrito de Compras" />
-
-                        <!-- Carrito de compras -->
-                        <TableView fx:id="tableCarrito" prefHeight="200.0">
-                            <columns>
-                                <TableColumn fx:id="colProductoCarrito" prefWidth="200.0" text="Producto" />
-                                <TableColumn fx:id="colCantidadCarrito" prefWidth="80.0" text="Cantidad" />
-                                <TableColumn fx:id="colPrecioCarrito" prefWidth="80.0" text="Precio" />
-                                <TableColumn fx:id="colSubtotalCarrito" prefWidth="100.0" text="Subtotal" />
-                            </columns>
-                        </TableView>
-
-                        <!-- Botones de carrito -->
-                        <HBox alignment="CENTER" spacing="10.0">
-                            <children>
-                                <Button fx:id="btnModificarCantidad" onAction="#handleModificarCantidad" styleClass="btn-warning" text="Modificar Cantidad" />
-                                <Button fx:id="btnEliminarItem" onAction="#handleEliminarItem" styleClass="btn-danger" text="Eliminar Item" />
-                            </children>
+                  <!-- Carrito de compras -->
+                  <VBox spacing="5.0" VBox.vgrow="ALWAYS">
+                     <children>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                           <children>
+                              <Label style="-fx-font-weight: bold;" text="Carrito de Compras" />
+                              <Region HBox.hgrow="ALWAYS" />
+                              <Button fx:id="btnLimpiarCarrito" onAction="#limpiarCarrito" style="-fx-background-color: #dc3545; -fx-text-fill: white;" text="Limpiar Carrito" />
+                           </children>
                         </HBox>
 
-                        <!-- Totales -->
-                        <VBox spacing="10.0" styleClass="card">
-                            <children>
-                                <Label styleClass="label-subtitle" text="Resumen de Venta" />
+                        <TableView fx:id="tablaCarrito" VBox.vgrow="ALWAYS" minHeight="250.0">
+                           <columns>
+                              <TableColumn fx:id="colCodigoCarrito" prefWidth="100.0" text="Código" />
+                              <TableColumn fx:id="colNombreCarrito" prefWidth="200.0" text="Producto" />
+                              <TableColumn fx:id="colCantidadCarrito" prefWidth="80.0" text="Cantidad" />
+                              <TableColumn fx:id="colPrecioCarrito" prefWidth="100.0" text="Precio" />
+                              <TableColumn fx:id="colSubtotalCarrito" prefWidth="120.0" text="Subtotal" />
+                              <TableColumn fx:id="colAccionesCarrito" prefWidth="80.0" text="Acciones" />
+                           </columns>
+                        </TableView>
+                     </children>
+                  </VBox>
+               </children>
+            </VBox>
 
-                                <HBox>
-                                    <children>
-                                        <Label text="Cantidad de artículos:" />
-                                        <Region HBox.hgrow="ALWAYS" />
-                                        <Label fx:id="lblCantidadArticulos" styleClass="label-info" text="0" />
-                                    </children>
-                                </HBox>
+            <!-- Panel derecho: Resumen y pago -->
+            <ScrollPane fitToWidth="true" prefWidth="350.0">
+               <content>
+                  <VBox spacing="15.0" style="-fx-background-color: #f8f9fa; -fx-padding: 20;">
+                     <children>
+                        <!-- Resumen de la venta -->
+                        <VBox spacing="10.0">
+                           <children>
+                              <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="Resumen de Venta" />
 
-                                <HBox>
-                                    <children>
-                                        <Label text="Subtotal:" />
-                                        <Region HBox.hgrow="ALWAYS" />
-                                        <Label fx:id="lblSubtotal" styleClass="label-info" text="$0.00">
-                                            <font>
-                                                <Font name="System Bold" size="14.0" />
-                                            </font>
-                                        </Label>
-                                    </children>
-                                </HBox>
+                              <GridPane hgap="10.0" vgap="8.0">
+                                 <columnConstraints>
+                                    <ColumnConstraints hgrow="NEVER" minWidth="100.0" />
+                                    <ColumnConstraints hgrow="ALWAYS" />
+                                 </columnConstraints>
 
-                                <HBox>
-                                    <children>
-                                        <Label text="IVA (16%):" />
-                                        <Region HBox.hgrow="ALWAYS" />
-                                        <Label fx:id="lblImpuestos" styleClass="label-info" text="$0.00">
-                                            <font>
-                                                <Font name="System Bold" size="14.0" />
-                                            </font>
-                                        </Label>
-                                    </children>
-                                </HBox>
+                                 <children>
+                                    <Label text="Artículos:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                                    <Label fx:id="lblCantidadArticulos" style="-fx-font-weight: bold;" text="0" GridPane.columnIndex="1" GridPane.rowIndex="0" />
 
-                                <Separator />
+                                    <Label text="Subtotal:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                                    <Label fx:id="lblSubtotal" style="-fx-font-weight: bold;" text="0.00" GridPane.columnIndex="1" GridPane.rowIndex="1" />
 
-                                <HBox>
-                                    <children>
-                                        <Label styleClass="label-title" text="TOTAL:">
-                                            <font>
-                                                <Font name="System Bold" size="16.0" />
-                                            </font>
-                                        </Label>
-                                        <Region HBox.hgrow="ALWAYS" />
-                                        <Label fx:id="lblTotal" styleClass="label-success" text="$0.00">
-                                            <font>
-                                                <Font name="System Bold" size="18.0" />
-                                            </font>
-                                        </Label>
-                                    </children>
-                                </HBox>
-                            </children>
-                            <padding>
-                                <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
-                            </padding>
+                                    <Label text="IVA (16%):" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                                    <Label fx:id="lblIVA" style="-fx-font-weight: bold;" text="0.00" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+                                    <Separator GridPane.columnIndex="0" GridPane.columnSpan="2" GridPane.rowIndex="3" />
+
+                                    <Label style="-fx-font-size: 16px; -fx-font-weight: bold;" text="TOTAL:" GridPane.columnIndex="0" GridPane.rowIndex="4" />
+                                    <Label fx:id="lblTotal" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #28a745;" text="0.00" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+                                 </children>
+                              </GridPane>
+                           </children>
                         </VBox>
+
+                        <Separator />
 
                         <!-- Método de pago -->
-                        <VBox spacing="10.0" styleClass="card">
-                            <children>
-                                <Label styleClass="label-subtitle" text="Método de Pago" />
-
-                                <VBox spacing="5.0">
-                                    <children>
-                                        <Label text="Seleccionar método:" />
-                                        <ComboBox fx:id="cmbMetodoPago" maxWidth="1.7976931348623157E308" onAction="#handleCambioMetodoPago" />
-                                    </children>
-                                </VBox>
-
-                                <!-- Campo para efectivo -->
-                                <VBox fx:id="vboxEfectivo" spacing="5.0">
-                                    <children>
-                                        <Label text="Efectivo recibido:" />
-                                        <TextField fx:id="txtEfectivoRecibido" promptText="0.00" />
-                                        <Label fx:id="lblCambio" styleClass="label-success" text="Cambio: $0.00">
-                                            <font>
-                                                <Font name="System Bold" size="14.0" />
-                                            </font>
-                                        </Label>
-                                    </children>
-                                </VBox>
-
-                                <!-- Campo para transferencia -->
-                                <VBox fx:id="vboxTransferencia" spacing="5.0" visible="false">
-                                    <children>
-                                        <Label text="Referencia de transferencia:" />
-                                        <TextField fx:id="txtReferenciaTransferencia" promptText="Ingrese la referencia..." />
-                                    </children>
-                                </VBox>
-                            </children>
-                            <padding>
-                                <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
-                            </padding>
-                        </VBox>
-
-                        <!-- Botones de acción -->
                         <VBox spacing="10.0">
-                            <children>
-                                <Button fx:id="btnProcesarVenta" maxWidth="1.7976931348623157E308" onAction="#handleProcesarVenta" styleClass="btn-success" text="PROCESAR VENTA">
-                                    <font>
-                                        <Font name="System Bold" size="16.0" />
-                                    </font>
-                                </Button>
+                           <children>
+                              <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="Método de Pago" />
 
-                                <HBox alignment="CENTER" spacing="10.0">
-                                    <children>
-                                        <Button fx:id="btnImprimirTicket" onAction="#handleImprimirTicket" styleClass="btn-primary" text="Imprimir Ticket" />
-                                        <Button fx:id="btnCancelarVenta" onAction="#handleCancelarVenta" styleClass="btn-danger" text="Cancelar Venta" />
-                                    </children>
-                                </HBox>
-                            </children>
+                              <VBox spacing="8.0">
+                                 <children>
+                                    <RadioButton fx:id="rbEfectivo" selected="true" text="Efectivo">
+                                       <toggleGroup>
+                                          <ToggleGroup fx:id="grupoMetodoPago" />
+                                       </toggleGroup>
+                                    </RadioButton>
+                                    <RadioButton fx:id="rbTarjeta" text="Tarjeta" toggleGroup="$grupoMetodoPago" />
+                                    <RadioButton fx:id="rbTransferencia" text="Transferencia" toggleGroup="$grupoMetodoPago" />
+                                 </children>
+                              </VBox>
+
+                              <!-- Panel de efectivo -->
+                              <VBox fx:id="panelEfectivo" spacing="5.0">
+                                 <children>
+                                    <Label text="Pago con efectivo:" />
+                                    <TextField fx:id="txtPagoEfectivo" promptText="Cantidad recibida..." />
+                                    <Label fx:id="lblCambio" style="-fx-font-weight: bold;" text="Cambio: 0.00" />
+                                 </children>
+                              </VBox>
+
+                              <!-- Panel de transferencia -->
+                              <VBox fx:id="panelTransferencia" spacing="5.0" visible="false" managed="false">
+                                 <children>
+                                    <Label text="Se abrirá el módulo OCR para validar" />
+                                    <Label text="el comprobante de transferencia automáticamente." />
+                                    <Button fx:id="btnValidarTransferencia" text="Validar Comprobante con OCR" style="-fx-background-color: #17a2b8; -fx-text-fill: white;" onAction="#abrirModuloOCR" />
+                                 </children>
+                              </VBox>
+                           </children>
                         </VBox>
-                    </children>
-                </VBox>
-            </children>
-            <padding>
-                <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
-            </padding>
-        </HBox>
-    </center>
-</BorderPane>
+
+                        <Separator />
+
+                        <!-- Acciones de venta -->
+                        <VBox spacing="15.0">
+                           <children>
+                              <Button fx:id="btnProcesarVenta" onAction="#procesarVenta" maxWidth="Infinity" style="-fx-background-color: #28a745; -fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold; -fx-padding: 15;" text="PROCESAR VENTA" disable="true" />
+
+                              <!-- Eliminar el HBox que contenía btnGuardarPendiente y cambiar por un solo botón -->
+                              <Button fx:id="btnCancelarVenta" onAction="#cancelarVenta" maxWidth="Infinity" style="-fx-background-color: #6c757d; -fx-text-fill: white;" text="Cancelar Venta" />
+
+                              <Button fx:id="btnImprimirTicket" onAction="#imprimirTicket" maxWidth="Infinity" text="Imprimir Ticket" visible="false" />
+                           </children>
+                        </VBox>
+                     </children>
+                  </VBox>
+               </content>
+            </ScrollPane>
+         </items>
+      </SplitPane>
+
+      <!-- Barra de estado -->
+      <ToolBar style="-fx-background-color: #e9ecef;" prefHeight="40.0">
+         <items>
+            <Label fx:id="lblEstadoVenta" text="Listo para nueva venta" />
+            <Separator orientation="VERTICAL" />
+            <Label fx:id="lblUsuarioVendedor" text="Vendedor: [Usuario]" />
+            <Region HBox.hgrow="ALWAYS" />
+            <Label fx:id="lblFechaHoraVenta" text="[Fecha y Hora]" />
+         </items>
+      </ToolBar>
+   </children>
+</VBox>

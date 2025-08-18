@@ -1,7 +1,8 @@
 package com.pos.puntoventaocr.models;
 
-import java.time.LocalDateTime;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public class ComprobanteOCR {
     private int idComprobante;
@@ -11,107 +12,56 @@ public class ComprobanteOCR {
     private String bancoEmisor;
     private String cuentaRemitente;
     private BigDecimal montoDetectado;
-    private LocalDateTime fechaTransferencia;
+    private LocalDate fechaTransferencia;
     private String referenciaOperacion;
     private String nombreBeneficiario;
-    private EstadoOCR estadoValidacion;
-    private String datosExtraidos; // JSON
-    private LocalDateTime fechaProcesamiento;
+    private String estadoValidacion;
+    private String datosExtraidos;
     private Usuario usuarioValidador;
     private String observaciones;
+    private LocalDateTime fechaProcesamiento;
+    private LocalDateTime fechaValidacion;
 
     // Constructor vacío
     public ComprobanteOCR() {
-        this.estadoValidacion = EstadoOCR.PENDIENTE;
         this.fechaProcesamiento = LocalDateTime.now();
+        this.estadoValidacion = "PENDIENTE";
         this.montoDetectado = BigDecimal.ZERO;
     }
 
-    // Constructor con parámetros
-    public ComprobanteOCR(Venta venta, String imagenOriginal) {
+    // Constructor con parámetros básicos
+    public ComprobanteOCR(String imagenOriginal, String bancoEmisor, BigDecimal montoDetectado) {
         this();
-        this.venta = venta;
         this.imagenOriginal = imagenOriginal;
+        this.bancoEmisor = bancoEmisor;
+        this.montoDetectado = montoDetectado;
     }
 
     // Métodos de negocio
-    public boolean cargarImagen(String rutaImagen) {
-        try {
-            this.imagenOriginal = rutaImagen;
-            return true;
-        } catch (Exception e) {
-            System.err.println("Error al cargar imagen: " + e.getMessage());
-            return false;
-        }
-    }
-
-    public boolean validarDatos() {
-        StringBuilder errores = new StringBuilder();
-
-        if (bancoEmisor == null || bancoEmisor.trim().isEmpty()) {
-            errores.append("Banco emisor requerido. ");
-        }
-
-        if (montoDetectado == null || montoDetectado.compareTo(BigDecimal.ZERO) <= 0) {
-            errores.append("Monto inválido. ");
-        }
-
-        if (referenciaOperacion == null || referenciaOperacion.trim().isEmpty()) {
-            errores.append("Referencia de operación requerida. ");
-        }
-
-        return errores.length() == 0;
-    }
-
-    public boolean validarContraVenta() {
-        if (venta == null) {
-            return false;
-        }
-
-        // Validar que el monto coincida
-        if (montoDetectado.compareTo(venta.getTotal()) != 0) {
-            return false;
-        }
-
-        // Validar que la transferencia sea del mismo día
-        if (fechaTransferencia != null && venta.getFechaVenta() != null) {
-            return fechaTransferencia.toLocalDate().equals(venta.getFechaVenta().toLocalDate());
-        }
-
-        return true;
-    }
-
-    public void aprobarComprobante(Usuario usuario) {
-        this.estadoValidacion = EstadoOCR.VALIDADO;
-        this.usuarioValidador = usuario;
-
-        if (venta != null) {
-            venta.setReferenciaTransferencia(this.referenciaOperacion);
-        }
-    }
-
-    public void rechazarComprobante(Usuario usuario, String motivo) {
-        this.estadoValidacion = EstadoOCR.RECHAZADO;
-        this.usuarioValidador = usuario;
-        this.observaciones = motivo;
-    }
-
-    public boolean verificarReferenciaDuplicada() {
-        // Esta lógica debería implementarse en el DAO
-        // Por ahora retornamos false como placeholder
-        return false;
-    }
-
-    public boolean esPendiente() {
-        return EstadoOCR.PENDIENTE.equals(estadoValidacion);
+    public boolean estaPendiente() {
+        return "PENDIENTE".equals(this.estadoValidacion);
     }
 
     public boolean estaValidado() {
-        return EstadoOCR.VALIDADO.equals(estadoValidacion);
+        return "VALIDADO".equals(this.estadoValidacion);
     }
 
     public boolean estaRechazado() {
-        return EstadoOCR.RECHAZADO.equals(estadoValidacion);
+        return "RECHAZADO".equals(this.estadoValidacion);
+    }
+
+    public void validar(Usuario usuario, String observaciones) {
+        this.estadoValidacion = "VALIDADO";
+        this.usuarioValidador = usuario;
+        this.observaciones = observaciones;
+        this.fechaValidacion = LocalDateTime.now();
+    }
+
+    public void rechazar(Usuario usuario, String motivo) {
+        this.estadoValidacion = "RECHAZADO";
+        this.usuarioValidador = usuario;
+        this.observaciones = motivo;
+        this.fechaValidacion = LocalDateTime.now();
     }
 
     // Getters y Setters
@@ -171,11 +121,11 @@ public class ComprobanteOCR {
         this.montoDetectado = montoDetectado;
     }
 
-    public LocalDateTime getFechaTransferencia() {
+    public LocalDate getFechaTransferencia() {
         return fechaTransferencia;
     }
 
-    public void setFechaTransferencia(LocalDateTime fechaTransferencia) {
+    public void setFechaTransferencia(LocalDate fechaTransferencia) {
         this.fechaTransferencia = fechaTransferencia;
     }
 
@@ -195,11 +145,11 @@ public class ComprobanteOCR {
         this.nombreBeneficiario = nombreBeneficiario;
     }
 
-    public EstadoOCR getEstadoValidacion() {
+    public String getEstadoValidacion() {
         return estadoValidacion;
     }
 
-    public void setEstadoValidacion(EstadoOCR estadoValidacion) {
+    public void setEstadoValidacion(String estadoValidacion) {
         this.estadoValidacion = estadoValidacion;
     }
 
@@ -208,15 +158,72 @@ public class ComprobanteOCR {
     }
 
     public void setDatosExtraidos(String datosExtraidos) {
-        this.datosExtraidos = datosExtraidos;
+        if (datosExtraidos == null || datosExtraidos.trim().isEmpty()) {
+            this.datosExtraidos = "{}";
+            return;
+        }
+
+        try {
+            // Sanitizar el texto para convertirlo en JSON válido
+            this.datosExtraidos = sanitizarTextoParaJSON(datosExtraidos);
+        } catch (Exception e) {
+            System.err.println("Error sanitizando datos extraídos: " + e.getMessage());
+            // En caso de error, guardar como objeto JSON simple
+            this.datosExtraidos = "{\"texto_raw\": \"Error procesando texto\", \"error\": \"" +
+                                 escapeJSON(e.getMessage()) + "\"}";
+        }
     }
 
-    public LocalDateTime getFechaProcesamiento() {
-        return fechaProcesamiento;
+    private String sanitizarTextoParaJSON(String textoRaw) {
+        // Limpiar el texto de caracteres problemáticos
+        String textoLimpio = textoRaw
+            .replace("\\", "\\\\")  // Escapar backslashes
+            .replace("\"", "\\\"")  // Escapar comillas dobles
+            .replace("\n", "\\n")   // Escapar saltos de línea
+            .replace("\r", "\\r")   // Escapar retornos de carro
+            .replace("\t", "\\t")   // Escapar tabs
+            .replace("\b", "\\b")   // Escapar backspaces
+            .replace("\f", "\\f");  // Escapar form feeds
+
+        // Remover caracteres de control que no son válidos en JSON
+        textoLimpio = textoLimpio.replaceAll("[\u0000-\u001F\u007F-\u009F]", "");
+
+        // Crear un objeto JSON simple con el texto sanitizado
+        StringBuilder jsonBuilder = new StringBuilder();
+        jsonBuilder.append("{");
+        jsonBuilder.append("\"texto_extraido\": \"").append(textoLimpio).append("\",");
+        jsonBuilder.append("\"fecha_procesamiento\": \"").append(LocalDateTime.now().toString()).append("\",");
+        jsonBuilder.append("\"longitud_texto\": ").append(textoRaw.length()).append(",");
+
+        // Agregar información adicional si está disponible
+        if (this.bancoEmisor != null) {
+            jsonBuilder.append("\"banco_detectado\": \"").append(escapeJSON(this.bancoEmisor)).append("\",");
+        }
+        if (this.montoDetectado != null) {
+            jsonBuilder.append("\"monto_detectado\": ").append(this.montoDetectado).append(",");
+        }
+        if (this.referenciaOperacion != null) {
+            jsonBuilder.append("\"referencia_detectada\": \"").append(escapeJSON(this.referenciaOperacion)).append("\",");
+        }
+
+        // Remover la última coma y cerrar el JSON
+        String json = jsonBuilder.toString();
+        if (json.endsWith(",")) {
+            json = json.substring(0, json.length() - 1);
+        }
+        json += "}";
+
+        return json;
     }
 
-    public void setFechaProcesamiento(LocalDateTime fechaProcesamiento) {
-        this.fechaProcesamiento = fechaProcesamiento;
+    private String escapeJSON(String value) {
+        if (value == null) return "";
+        return value
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\t", "\\t");
     }
 
     public Usuario getUsuarioValidador() {
@@ -235,21 +242,203 @@ public class ComprobanteOCR {
         this.observaciones = observaciones;
     }
 
+    public LocalDateTime getFechaProcesamiento() {
+        return fechaProcesamiento;
+    }
+
+    public void setFechaProcesamiento(LocalDateTime fechaProcesamiento) {
+        this.fechaProcesamiento = fechaProcesamiento;
+    }
+
+    public LocalDateTime getFechaValidacion() {
+        return fechaValidacion;
+    }
+
+    public void setFechaValidacion(LocalDateTime fechaValidacion) {
+        this.fechaValidacion = fechaValidacion;
+    }
+
+    // Métodos adicionales que necesitan los controladores
+    public String getEstado() {
+        return estadoValidacion;
+    }
+
+    public void setEstado(String estado) {
+        this.estadoValidacion = estado;
+    }
+
+    // Métodos de validación para el controlador
+    public boolean coincideMontoConVenta() {
+        if (this.venta == null || this.montoDetectado == null) {
+            return false;
+        }
+
+        // Validación MEJORADA del monto para manejar diferencias de decimales
+        BigDecimal montoVenta = this.venta.getTotal();
+        BigDecimal montoDetectado = this.montoDetectado;
+
+        // Normalizar ambos montos a 2 decimales para comparación
+        montoVenta = montoVenta.setScale(2, BigDecimal.ROUND_HALF_UP);
+        montoDetectado = montoDetectado.setScale(2, BigDecimal.ROUND_HALF_UP);
+
+        // Comparar con una tolerancia muy pequeña para diferencias de redondeo
+        BigDecimal diferencia = montoDetectado.subtract(montoVenta).abs();
+        boolean montoCoincide = diferencia.compareTo(new BigDecimal("0.01")) <= 0;
+
+        // Log para debugging
+        System.out.println("Validación monto - Venta: " + montoVenta + ", Detectado: " + montoDetectado +
+                          ", Diferencia: " + diferencia + ", Coincide: " + montoCoincide);
+
+        return montoCoincide;
+    }
+
+    public boolean esFechaValida() {
+        // CORRECCIÓN: La fecha ahora es OPCIONAL
+        if (this.venta == null) {
+            return false;
+        }
+
+        // Si no se detectó fecha en el comprobante, se considera válido
+        if (this.fechaTransferencia == null) {
+            System.out.println("Fecha no detectada en comprobante - Se considera válida (fecha opcional)");
+            return true; // FECHA OPCIONAL
+        }
+
+        // Si hay fecha, validar que sea coherente con la venta
+        LocalDate fechaVenta = this.venta.getFecha().toLocalDate();
+        LocalDate fechaTransferencia = this.fechaTransferencia;
+
+        // La transferencia debe ser el mismo día de la venta o máximo 1 día después
+        boolean fechaValida = !fechaTransferencia.isBefore(fechaVenta) &&
+                             !fechaTransferencia.isAfter(fechaVenta.plusDays(1));
+
+        System.out.println("Validación fecha - Venta: " + fechaVenta + ", Transferencia: " + fechaTransferencia +
+                          ", Válida: " + fechaValida);
+
+        return fechaValida;
+    }
+
+    /**
+     * Validación específica para verificar que el comprobante corresponde exactamente a la venta
+     * @return true si el comprobante es específico para esta venta
+     */
+    public boolean esEspecificoParaVenta() {
+        if (this.venta == null) {
+            return false;
+        }
+
+        // Verificaciones específicas:
+        // 1. Monto debe coincidir exactamente
+        boolean montoEspecifico = coincideMontoConVenta();
+
+        // 2. Fecha debe estar en el rango correcto
+        boolean fechaEspecifica = esFechaValida();
+
+        // 3. La venta debe ser por transferencia
+        boolean esTransferencia = "TRANSFERENCIA".equals(this.venta.getMetodoPago());
+
+        // 4. La venta debe estar completada
+        boolean ventaCompletada = "COMPLETADA".equals(this.venta.getEstado());
+
+        return montoEspecifico && fechaEspecifica && esTransferencia && ventaCompletada;
+    }
+
+    /**
+     * Obtiene un puntaje de coincidencia con la venta (0-100)
+     * @return puntaje de 0 a 100 indicando qué tan bien coincide el comprobante con la venta
+     */
+    public int getPuntajeCoincidencia() {
+        if (this.venta == null) {
+            return 0;
+        }
+
+        int puntaje = 0;
+
+        // Monto (40 puntos máximo)
+        if (this.montoDetectado != null) {
+            BigDecimal diferencia = this.montoDetectado.subtract(this.venta.getTotal()).abs();
+            if (diferencia.compareTo(BigDecimal.ZERO) == 0) {
+                puntaje += 40; // Coincidencia exacta
+            } else if (diferencia.compareTo(new BigDecimal("0.01")) <= 0) {
+                puntaje += 35; // Diferencia mínima de redondeo
+            } else if (diferencia.compareTo(new BigDecimal("1.00")) <= 0) {
+                puntaje += 20; // Diferencia pequeña
+            } else if (diferencia.compareTo(new BigDecimal("10.00")) <= 0) {
+                puntaje += 10; // Diferencia moderada
+            }
+        }
+
+        // Fecha (30 puntos máximo)
+        if (this.fechaTransferencia != null) {
+            LocalDate fechaVenta = this.venta.getFecha().toLocalDate();
+            if (this.fechaTransferencia.equals(fechaVenta)) {
+                puntaje += 30; // Mismo día
+            } else if (this.fechaTransferencia.equals(fechaVenta.plusDays(1))) {
+                puntaje += 25; // Día siguiente
+            } else if (!this.fechaTransferencia.isBefore(fechaVenta.minusDays(1)) &&
+                      !this.fechaTransferencia.isAfter(fechaVenta.plusDays(2))) {
+                puntaje += 15; // Dentro de rango razonable
+            }
+        }
+
+        // Método de pago (20 puntos máximo)
+        if ("TRANSFERENCIA".equals(this.venta.getMetodoPago())) {
+            puntaje += 20;
+        }
+
+        // Referencia válida (10 puntos máximo)
+        if (referenciaEsUnica()) {
+            puntaje += 10;
+        }
+
+        return Math.min(puntaje, 100);
+    }
+
+    /**
+     * Verifica si la referencia de operación es única y válida
+     * @return true si la referencia cumple con los criterios de validez
+     */
+    public boolean referenciaEsUnica() {
+        return this.referenciaOperacion != null &&
+               !this.referenciaOperacion.trim().isEmpty() &&
+               this.referenciaOperacion.length() >= 6; // Mínimo 6 caracteres para ser válida
+    }
+
+    // Método para marcar errores de procesamiento OCR
+    public void marcarErrorProcesamiento(String mensajeError) {
+        this.estadoValidacion = "ERROR";
+        this.observaciones = mensajeError;
+        this.fechaValidacion = LocalDateTime.now();
+    }
+
+    // Método para verificar si hay errores de procesamiento
+    public boolean tieneErrorProcesamiento() {
+        return "ERROR".equals(this.estadoValidacion) ||
+               (this.observaciones != null && this.observaciones.contains("ERROR"));
+    }
+
     @Override
     public String toString() {
         return "ComprobanteOCR{" +
                 "idComprobante=" + idComprobante +
-                ", referenciaOperacion='" + referenciaOperacion + '\'' +
+                ", bancoEmisor='" + bancoEmisor + '\'' +
                 ", montoDetectado=" + montoDetectado +
-                ", estadoValidacion=" + estadoValidacion +
+                ", fechaTransferencia=" + fechaTransferencia +
+                ", referenciaOperacion='" + referenciaOperacion + '\'' +
+                ", estadoValidacion='" + estadoValidacion + '\'' +
                 '}';
     }
 
-    // Enumeración EstadoOCR
-    public enum EstadoOCR {
-        VALIDADO,
-        PENDIENTE,
-        RECHAZADO,
-        ERROR_PROCESAMIENTO
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        ComprobanteOCR that = (ComprobanteOCR) obj;
+        return idComprobante == that.idComprobante;
+    }
+
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(idComprobante);
     }
 }

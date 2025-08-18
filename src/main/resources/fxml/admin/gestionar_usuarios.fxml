@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pos.puntoventaocr.controllers.GestionarUsuariosController">
+   <children>
+      <!-- Título -->
+      <HBox alignment="CENTER_LEFT" style="-fx-background-color: #f8f9fa; -fx-padding: 15;">
+         <children>
+            <Label style="-fx-font-size: 20px; -fx-font-weight: bold;" text="Gestión de Usuarios" />
+         </children>
+      </HBox>
+
+      <!-- Barra de herramientas -->
+      <ToolBar style="-fx-background-color: white;">
+         <items>
+            <Button fx:id="btnNuevo" onAction="#nuevoUsuario" style="-fx-background-color: #28a745; -fx-text-fill: white;" text="Nuevo Usuario" />
+            <Button fx:id="btnEditar" disable="true" onAction="#editarUsuario" style="-fx-background-color: #007bff; -fx-text-fill: white;" text="Editar" />
+            <Button fx:id="btnEliminar" disable="true" onAction="#eliminarUsuario" style="-fx-background-color: #dc3545; -fx-text-fill: white;" text="Eliminar" />
+            <Separator orientation="VERTICAL" />
+            <Button fx:id="btnResetPassword" disable="true" onAction="#resetearPassword" text="Reset Password" />
+            <Button fx:id="btnActualizar" onAction="#actualizarLista" text="Actualizar" />
+         </items>
+      </ToolBar>
+
+      <!-- Lista de usuarios -->
+      <TableView fx:id="tablaUsuarios" VBox.vgrow="ALWAYS">
+         <columns>
+            <TableColumn fx:id="colId" prefWidth="80.0" text="ID" />
+            <TableColumn fx:id="colNombre" prefWidth="150.0" text="Nombre" />
+            <TableColumn fx:id="colApellido" prefWidth="150.0" text="Apellido" />
+            <TableColumn fx:id="colUsuario" prefWidth="120.0" text="Usuario" />
+            <TableColumn fx:id="colEmail" prefWidth="200.0" text="Email" />
+            <TableColumn fx:id="colRol" prefWidth="100.0" text="Rol" />
+            <TableColumn fx:id="colEstado" prefWidth="100.0" text="Estado" />
+            <TableColumn fx:id="colUltimoAcceso" prefWidth="150.0" text="Último Acceso" />
+         </columns>
+      </TableView>
+
+      <!-- Barra de estado -->
+      <ToolBar style="-fx-background-color: #e9ecef;">
+         <items>
+            <Label fx:id="lblTotalUsuarios" text="Total usuarios: 0" />
+            <Separator orientation="VERTICAL" />
+            <Label fx:id="lblUsuariosActivos" text="Activos: 0" />
+         </items>
+      </ToolBar>
+   </children>
+</VBox>

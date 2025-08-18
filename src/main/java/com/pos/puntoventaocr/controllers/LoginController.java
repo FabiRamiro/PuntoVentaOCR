@@ -1,203 +1,193 @@
 package com.pos.puntoventaocr.controllers;
 
 import com.pos.puntoventaocr.dao.UsuarioDAO;
+import com.pos.puntoventaocr.dao.BitacoraDAO;
 import com.pos.puntoventaocr.models.Usuario;
 import com.pos.puntoventaocr.utils.AlertUtils;
 import com.pos.puntoventaocr.utils.SessionManager;
-import javafx.event.ActionEvent;
+import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.fxml.Initializable;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
 import javafx.stage.Stage;
 
 import java.io.IOException;
-import java.net.URL;
-import java.util.ResourceBundle;
 
-public class LoginController implements Initializable {
+public class LoginController {
 
     @FXML private TextField txtUsuario;
     @FXML private PasswordField txtPassword;
     @FXML private Button btnLogin;
-    @FXML private Label lblVersion;
-    @FXML private ProgressIndicator progressLogin;
-    @FXML private CheckBox chkRecordarUsuario;
+    @FXML private Label lblMensaje;
+    @FXML private ProgressIndicator progressIndicator;
 
     private UsuarioDAO usuarioDAO;
-    private static final String VERSION = "v1.0.0";
+    private BitacoraDAO bitacoraDAO;
 
-    @Override
-    public void initialize(URL location, ResourceBundle resources) {
+    @FXML
+    public void initialize() {
         usuarioDAO = new UsuarioDAO();
-        lblVersion.setText(VERSION);
-        progressLogin.setVisible(false);
+        bitacoraDAO = new BitacoraDAO();
+        progressIndicator.setVisible(false);
 
-        // Configurar eventos de teclado
-        txtPassword.setOnKeyPressed(this::handleKeyPressed);
-        txtUsuario.setOnKeyPressed(this::handleKeyPressed);
+        // Configurar eventos
+        btnLogin.setOnAction(e -> iniciarSesion());
+        txtPassword.setOnAction(e -> iniciarSesion()); // Enter en password
 
-        // Cargar último usuario si está guardado
-        cargarUltimoUsuario();
+        // Validaciones en tiempo real
+        txtUsuario.textProperty().addListener((obs, oldText, newText) -> {
+            lblMensaje.setText("");
+            habilitarBotonLogin();
+        });
+
+        txtPassword.textProperty().addListener((obs, oldText, newText) -> {
+            lblMensaje.setText("");
+            habilitarBotonLogin();
+        });
+
+        // Foco inicial en usuario
+        Platform.runLater(() -> txtUsuario.requestFocus());
     }
 
     @FXML
-    private void handleLogin(ActionEvent event) {
-        realizarLogin();
-    }
-
-    private void handleKeyPressed(KeyEvent event) {
-        if (event.getCode() == KeyCode.ENTER) {
-            realizarLogin();
-        }
-    }
-
-    private void realizarLogin() {
-        String usuario = txtUsuario.getText().trim();
+    private void iniciarSesion() {
+        String nombreUsuario = txtUsuario.getText().trim();
         String password = txtPassword.getText();
 
-        // Validaciones básicas
-        if (usuario.isEmpty()) {
-            AlertUtils.mostrarError("Error", "Ingrese el nombre de usuario");
+        // Validaciones
+        if (nombreUsuario.isEmpty()) {
+            mostrarMensaje("Por favor ingrese su nombre de usuario", "error");
             txtUsuario.requestFocus();
             return;
         }
 
         if (password.isEmpty()) {
-            AlertUtils.mostrarError("Error", "Ingrese la contraseña");
+            mostrarMensaje("Por favor ingrese su contraseña", "error");
             txtPassword.requestFocus();
             return;
         }
 
-        // Mostrar indicador de progreso
-        progressLogin.setVisible(true);
-        btnLogin.setDisable(true);
+        // Deshabilitar controles durante la autenticación
+        deshabilitarControles(true);
+        mostrarMensaje("Autenticando...", "info");
 
-        // Realizar autenticación en hilo separado
-        new Thread(() -> {
-            try {
-                Usuario usuarioAutenticado = usuarioDAO.autenticar(usuario, password);
-
-                javafx.application.Platform.runLater(() -> {
-                    progressLogin.setVisible(false);
-                    btnLogin.setDisable(false);
-
-                    if (usuarioAutenticado != null) {
-                        // Login exitoso
-                        SessionManager.getInstance().setUsuarioActual(usuarioAutenticado);
-
-                        if (chkRecordarUsuario.isSelected()) {
-                            guardarUltimoUsuario(usuario);
-                        }
-
-                        abrirVentanaPrincipal();
-                    } else {
-                        // Login fallido
-                        AlertUtils.mostrarError("Error de Autenticación",
-                                "Usuario o contraseña incorrectos.\n" +
-                                        "Verifique sus credenciales e intente nuevamente.");
-                        txtPassword.clear();
-                        txtUsuario.requestFocus();
-                    }
-                });
-
-            } catch (Exception e) {
-                javafx.application.Platform.runLater(() -> {
-                    progressLogin.setVisible(false);
-                    btnLogin.setDisable(false);
-                    AlertUtils.mostrarError("Error del Sistema",
-                            "Error al conectar con la base de datos:\n" + e.getMessage());
-                });
+        // Crear tarea en segundo plano
+        Task<Boolean> loginTask = new Task<Boolean>() {
+            @Override
+            protected Boolean call() throws Exception {
+                return usuarioDAO.autenticar(nombreUsuario, password);
             }
-        }).start();
+        };
+
+        loginTask.setOnSucceeded(e -> {
+            if (loginTask.getValue()) {
+                // Autenticación exitosa
+                Usuario usuario = usuarioDAO.obtenerPorNombreUsuario(nombreUsuario);
+                if (usuario != null) {
+                    // Establecer sesión
+                    SessionManager.getInstance().setUsuarioActual(usuario);
+
+                    // Registrar en bitácora
+                    bitacoraDAO.registrarLogin(usuario.getIdUsuario(), "127.0.0.1");
+
+                    mostrarMensaje("Bienvenido " + usuario.getNombreCompleto(), "success");
+
+                    // Cargar ventana principal
+                    cargarVentanaPrincipal();
+                } else {
+                    mostrarMensaje("Error al obtener datos del usuario", "error");
+                    deshabilitarControles(false);
+                }
+            } else {
+                mostrarMensaje("Credenciales incorrectas", "error");
+                deshabilitarControles(false);
+                txtPassword.clear();
+                txtUsuario.requestFocus();
+            }
+        });
+
+        loginTask.setOnFailed(e -> {
+            mostrarMensaje("Error de conexión", "error");
+            deshabilitarControles(false);
+        });
+
+        new Thread(loginTask).start();
     }
 
-    private void abrirVentanaPrincipal() {
+    private void cargarVentanaPrincipal() {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/principal.fxml"));
-            Parent root = loader.load();
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/principal.fxml"));
+            Scene scene = new Scene(loader.load());
 
-            Scene scene = new Scene(root);
-            scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+            // Verificar que el stage esté disponible antes de acceder a él
+            Stage stage = null;
+            if (btnLogin.getScene() != null && btnLogin.getScene().getWindow() != null) {
+                stage = (Stage) btnLogin.getScene().getWindow();
+            }
 
-            Stage stage = new Stage();
-            stage.setTitle("Sistema POS - " + SessionManager.getInstance().getUsuarioActual().getNombreCompleto());
-            stage.setScene(scene);
-            stage.setMaximized(true);
-            stage.show();
-
-            // Cerrar ventana de login
-            Stage loginStage = (Stage) btnLogin.getScene().getWindow();
-            loginStage.close();
+            if (stage != null) {
+                stage.setScene(scene);
+                stage.setTitle("Sistema POS - " + SessionManager.getInstance().getUsuarioActual().getNombreCompleto());
+                stage.centerOnScreen();
+            } else {
+                // Si no se puede obtener el stage, mostrar error
+                AlertUtils.showError("Error", "No se pudo acceder a la ventana principal");
+            }
 
         } catch (IOException e) {
-            AlertUtils.mostrarError("Error", "No se pudo abrir la ventana principal: " + e.getMessage());
-            e.printStackTrace();
+            AlertUtils.showError("Error", "No se pudo cargar la ventana principal: " + e.getMessage());
         }
     }
 
-    @FXML
-    private void handleRecuperarPassword(ActionEvent event) {
-        // Mostrar diálogo para recuperación de contraseña
-        Dialog<String> dialog = new Dialog<>();
-        dialog.setTitle("Recuperar Contraseña");
-        dialog.setHeaderText("Ingrese su nombre de usuario para recuperar la contraseña");
+    private void mostrarMensaje(String mensaje, String tipo) {
+        lblMensaje.setText(mensaje);
+        lblMensaje.getStyleClass().clear();
 
-        ButtonType recuperarButtonType = new ButtonType("Recuperar", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(recuperarButtonType, ButtonType.CANCEL);
-
-        TextField usuarioField = new TextField();
-        usuarioField.setPromptText("Nombre de usuario");
-
-        dialog.getDialogPane().setContent(usuarioField);
-
-        dialog.setResultConverter(dialogButton -> {
-            if (dialogButton == recuperarButtonType) {
-                return usuarioField.getText();
-            }
-            return null;
-        });
-
-        dialog.showAndWait().ifPresent(usuario -> {
-            if (!usuario.trim().isEmpty()) {
-                // Aquí implementarías la lógica de recuperación de contraseña
-                AlertUtils.mostrarInformacion("Recuperación de Contraseña",
-                        "Se ha enviado un correo con las instrucciones para recuperar su contraseña.");
-            }
-        });
-    }
-
-    @FXML
-    private void handleSalir(ActionEvent event) {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("Confirmar Salida");
-        alert.setHeaderText("¿Está seguro que desea salir del sistema?");
-        alert.setContentText("Se cerrará la aplicación completamente.");
-
-        alert.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) {
-                System.exit(0);
-            }
-        });
-    }
-
-    private void cargarUltimoUsuario() {
-        // Implementar lógica para cargar el último usuario guardado
-        // Por ahora solo un ejemplo
-        String ultimoUsuario = System.getProperty("ultimo.usuario", "");
-        if (!ultimoUsuario.isEmpty()) {
-            txtUsuario.setText(ultimoUsuario);
-            chkRecordarUsuario.setSelected(true);
-            txtPassword.requestFocus();
+        switch (tipo) {
+            case "error":
+                lblMensaje.getStyleClass().add("label-error");
+                break;
+            case "success":
+                lblMensaje.getStyleClass().add("label-success");
+                break;
+            case "info":
+            default:
+                lblMensaje.getStyleClass().add("label-info");
+                break;
         }
     }
 
-    private void guardarUltimoUsuario(String usuario) {
-        // Implementar lógica para guardar el último usuario
-        System.setProperty("ultimo.usuario", usuario);
+    private void deshabilitarControles(boolean deshabilitar) {
+        txtUsuario.setDisable(deshabilitar);
+        txtPassword.setDisable(deshabilitar);
+        btnLogin.setDisable(deshabilitar);
+        progressIndicator.setVisible(deshabilitar);
+    }
+
+    private void habilitarBotonLogin() {
+        boolean camposCompletos = !txtUsuario.getText().trim().isEmpty() &&
+                !txtPassword.getText().isEmpty();
+        btnLogin.setDisable(!camposCompletos);
+    }
+
+    @FXML
+    private void salir() {
+        System.exit(0);
+    }
+
+    @FXML
+    private void mostrarAyuda() {
+        AlertUtils.showInfo("Ayuda",
+            "Sistema de Punto de Venta OCR\n\n" +
+            "Para iniciar sesión:\n" +
+            "• Ingrese su nombre de usuario\n" +
+            "• Ingrese su contraseña\n" +
+            "• Presione 'Ingresar' o Enter\n\n" +
+            "Si tiene problemas para acceder:\n" +
+            "• Verifique que sus credenciales sean correctas\n" +
+            "• Contacte al administrador del sistema\n\n" +
+            "© 2025 Sistema POS OCR");
     }
 }

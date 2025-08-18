@@ -1,8 +1,7 @@
 package com.pos.puntoventaocr.models;
 
-import java.time.LocalDateTime;
 import java.math.BigDecimal;
-import java.util.List;
+import java.time.LocalDateTime;
 
 public class Cliente {
     private int idCliente;
@@ -15,105 +14,38 @@ public class Cliente {
     private LocalDateTime fechaRegistro;
     private BigDecimal credito;
     private boolean estado;
-    private LocalDateTime fechaCreacion;
-    private LocalDateTime fechaModificacion;
-    private Integer creadoPor;
-    private Integer modificadoPor;
 
     // Constructor vacío
     public Cliente() {
         this.fechaRegistro = LocalDateTime.now();
-        this.fechaCreacion = LocalDateTime.now();
         this.credito = BigDecimal.ZERO;
         this.estado = true;
     }
 
     // Constructor con parámetros básicos
-    public Cliente(String nombre, String apellidos, String telefono) {
+    public Cliente(String nombre, String apellidos) {
         this();
         this.nombre = nombre;
         this.apellidos = apellidos;
-        this.telefono = telefono;
     }
 
     // Constructor completo
-    public Cliente(String nombre, String apellidos, String rfc, String telefono, String email, String direccion) {
+    public Cliente(String nombre, String apellidos, String rfc, String telefono, String email) {
         this();
         this.nombre = nombre;
         this.apellidos = apellidos;
         this.rfc = rfc;
         this.telefono = telefono;
         this.email = email;
-        this.direccion = direccion;
     }
 
     // Métodos de negocio
-    public boolean registrar() {
-        // Validar datos mínimos
-        if (nombre == null || nombre.trim().isEmpty()) {
-            return false;
-        }
-
-        if (telefono == null || telefono.trim().isEmpty()) {
-            return false;
-        }
-
-        // Validar RFC si se proporciona
-        if (rfc != null && !rfc.trim().isEmpty()) {
-            if (!validarRFC(rfc)) {
-                return false;
-            }
-        }
-
-        // Validar email si se proporciona
-        if (email != null && !email.trim().isEmpty()) {
-            if (!validarEmail(email)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    public boolean actualizar() {
-        this.fechaModificacion = LocalDateTime.now();
-        return registrar(); // Usa las mismas validaciones
-    }
-
-    public boolean validarCredito(BigDecimal monto) {
-        if (credito == null) {
-            return false;
-        }
-        return credito.compareTo(monto) >= 0;
-    }
-
-    public void aplicarCredito(BigDecimal monto) {
-        if (credito != null && monto != null) {
-            this.credito = this.credito.add(monto);
-        }
-    }
-
-    public void descontarCredito(BigDecimal monto) {
-        if (credito != null && monto != null) {
-            this.credito = this.credito.subtract(monto);
-            if (this.credito.compareTo(BigDecimal.ZERO) < 0) {
-                this.credito = BigDecimal.ZERO;
-            }
-        }
-    }
-
     public String getNombreCompleto() {
-        StringBuilder nombreCompleto = new StringBuilder();
-        if (nombre != null) {
-            nombreCompleto.append(nombre);
-        }
-        if (apellidos != null && !apellidos.trim().isEmpty()) {
-            if (nombreCompleto.length() > 0) {
-                nombreCompleto.append(" ");
-            }
-            nombreCompleto.append(apellidos);
-        }
-        return nombreCompleto.toString();
+        return this.nombre + " " + (this.apellidos != null ? this.apellidos : "");
+    }
+
+    public boolean estaActivo() {
+        return this.estado;
     }
 
     public void activar() {
@@ -124,44 +56,21 @@ public class Cliente {
         this.estado = false;
     }
 
-    public boolean isActivo() {
-        return this.estado;
+    public boolean tieneCredito() {
+        return credito != null && credito.compareTo(BigDecimal.ZERO) > 0;
     }
 
-    // Métodos de validación
-    private boolean validarRFC(String rfc) {
-        // Validación básica de RFC mexicano
-        if (rfc == null || rfc.trim().isEmpty()) {
-            return false;
+    public void agregarCredito(BigDecimal monto) {
+        if (monto != null && monto.compareTo(BigDecimal.ZERO) > 0) {
+            this.credito = this.credito.add(monto);
         }
-
-        String rfcLimpio = rfc.trim().toUpperCase();
-
-        // RFC Persona Física: 4 letras + 6 dígitos + 3 caracteres alfanuméricos
-        // RFC Persona Moral: 3 letras + 6 dígitos + 3 caracteres alfanuméricos
-        return rfcLimpio.matches("^[A-Z]{3,4}\\d{6}[A-Z0-9]{3}$");
     }
 
-    private boolean validarEmail(String email) {
-        if (email == null || email.trim().isEmpty()) {
-            return false;
+    public void reducirCredito(BigDecimal monto) {
+        if (monto != null && monto.compareTo(BigDecimal.ZERO) > 0 &&
+            this.credito.compareTo(monto) >= 0) {
+            this.credito = this.credito.subtract(monto);
         }
-
-        // Validación básica de email
-        String emailPattern = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
-        return email.matches(emailPattern);
-    }
-
-    private boolean validarTelefono(String telefono) {
-        if (telefono == null || telefono.trim().isEmpty()) {
-            return false;
-        }
-
-        // Remover espacios y caracteres especiales
-        String telefonoLimpio = telefono.replaceAll("[\\s\\-\\(\\)]", "");
-
-        // Validar que tenga 10 dígitos (formato mexicano)
-        return telefonoLimpio.matches("^\\d{10}$");
     }
 
     // Getters y Setters
@@ -245,41 +154,9 @@ public class Cliente {
         this.estado = estado;
     }
 
-    public LocalDateTime getFechaCreacion() {
-        return fechaCreacion;
-    }
-
-    public void setFechaCreacion(LocalDateTime fechaCreacion) {
-        this.fechaCreacion = fechaCreacion;
-    }
-
-    public LocalDateTime getFechaModificacion() {
-        return fechaModificacion;
-    }
-
-    public void setFechaModificacion(LocalDateTime fechaModificacion) {
-        this.fechaModificacion = fechaModificacion;
-    }
-
-    public Integer getCreadoPor() {
-        return creadoPor;
-    }
-
-    public void setCreadoPor(Integer creadoPor) {
-        this.creadoPor = creadoPor;
-    }
-
-    public Integer getModificadoPor() {
-        return modificadoPor;
-    }
-
-    public void setModificadoPor(Integer modificadoPor) {
-        this.modificadoPor = modificadoPor;
-    }
-
     @Override
     public String toString() {
-        return getNombreCompleto() + " (" + telefono + ")";
+        return getNombreCompleto();
     }
 
     @Override

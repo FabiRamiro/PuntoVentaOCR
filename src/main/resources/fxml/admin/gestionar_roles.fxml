@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pos.puntoventaocr.controllers.GestionarRolesController" prefWidth="1000.0" prefHeight="700.0">
+   <children>
+      <!-- Título -->
+      <HBox alignment="CENTER_LEFT" style="-fx-background-color: #f8f9fa; -fx-padding: 15;" prefHeight="60.0">
+         <children>
+            <Label style="-fx-font-size: 20px; -fx-font-weight: bold;" text="Gestionar Roles y Permisos" />
+         </children>
+      </HBox>
+
+      <!-- Contenido principal -->
+      <HBox VBox.vgrow="ALWAYS" spacing="15.0" style="-fx-padding: 15;">
+         <children>
+            <!-- Formulario de rol -->
+            <VBox spacing="15.0" prefWidth="400.0">
+               <children>
+                  <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="Información del Rol" />
+
+                  <VBox spacing="10.0">
+                     <children>
+                        <VBox spacing="5.0">
+                           <children>
+                              <Label text="Nombre del Rol:" />
+                              <TextField fx:id="txtNombreRol" prefWidth="350.0" promptText="Ej: Supervisor" />
+                           </children>
+                        </VBox>
+
+                        <VBox spacing="5.0">
+                           <children>
+                              <Label text="Descripción:" />
+                              <TextArea fx:id="txtDescripcion" prefWidth="350.0" prefHeight="80.0" wrapText="true" promptText="Descripción del rol y sus responsabilidades..." />
+                           </children>
+                        </VBox>
+
+                        <CheckBox fx:id="chkActivo" text="Rol Activo" selected="true" />
+                     </children>
+                  </VBox>
+
+                  <Separator />
+
+                  <!-- Permisos -->
+                  <VBox spacing="10.0">
+                     <children>
+                        <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="Permisos del Rol" />
+
+                        <GridPane hgap="10.0" vgap="8.0">
+                           <columnConstraints>
+                              <ColumnConstraints hgrow="SOMETIMES" />
+                              <ColumnConstraints hgrow="SOMETIMES" />
+                           </columnConstraints>
+                           <children>
+                              <CheckBox fx:id="chkVentas" text="Gestión de Ventas" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                              <CheckBox fx:id="chkProductos" text="Gestión de Productos" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+                              <CheckBox fx:id="chkInventario" text="Control de Inventario" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                              <CheckBox fx:id="chkReportes" text="Acceso a Reportes" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                              <CheckBox fx:id="chkUsuarios" text="Gestión de Usuarios" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                              <CheckBox fx:id="chkConfiguracion" text="Configuración Sistema" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                              <CheckBox fx:id="chkOCR" text="Módulo OCR" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                              <CheckBox fx:id="chkDevoluciones" text="Gestión Devoluciones" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                           </children>
+                        </GridPane>
+                     </children>
+                  </VBox>
+
+                  <Separator />
+
+                  <!-- Botones -->
+                  <HBox spacing="10.0">
+                     <children>
+                        <Button fx:id="btnGuardar" onAction="#guardarRol" text="Crear Rol" style="-fx-background-color: #28a745; -fx-text-fill: white;" prefWidth="100.0" />
+                        <Button fx:id="btnEliminar" onAction="#eliminarRol" text="Eliminar" style="-fx-background-color: #dc3545; -fx-text-fill: white;" prefWidth="100.0" disable="true" />
+                        <Button fx:id="btnLimpiar" onAction="#limpiarFormulario" text="Limpiar" style="-fx-background-color: #6c757d; -fx-text-fill: white;" prefWidth="100.0" />
+                     </children>
+                  </HBox>
+               </children>
+            </VBox>
+
+            <Separator orientation="VERTICAL" />
+
+            <!-- Tabla de roles -->
+            <VBox HBox.hgrow="ALWAYS" spacing="10.0">
+               <children>
+                  <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="Roles Existentes" />
+
+                  <TableView fx:id="tablaRoles" VBox.vgrow="ALWAYS">
+                     <columns>
+                        <TableColumn fx:id="colNombre" prefWidth="150.0" text="Nombre del Rol" />
+                        <TableColumn fx:id="colDescripcion" prefWidth="200.0" text="Descripción" />
+                        <TableColumn fx:id="colEstado" prefWidth="100.0" text="Estado" />
+                        <TableColumn fx:id="colPermisos" prefWidth="200.0" text="Permisos" />
+                     </columns>
+                  </TableView>
+
+                  <Label style="-fx-font-size: 12px; -fx-text-fill: gray;" text="Seleccione un rol de la tabla para editarlo. Los roles del sistema (ADMINISTRADOR, GERENTE, CAJERO) no pueden ser eliminados." wrapText="true" />
+               </children>
+            </VBox>
+         </children>
+      </HBox>
+   </children>
+</VBox>
