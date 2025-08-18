@@ -22,7 +22,13 @@ public class MotorOCR {
     private static final Pattern PATRON_MONTO = Pattern.compile("\\$?([0-9,]+\\.?[0-9]*)");
     private static final Pattern PATRON_FECHA = Pattern.compile("(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4})");
     private static final Pattern PATRON_REFERENCIA = Pattern.compile("([A-Z0-9]{8,20})");
-    private static final Pattern PATRON_BANCO = Pattern.compile("(BBVA|BANAMEX|SANTANDER|HSBC|BANORTE|SCOTIABANK|INBURSA)");
+    private static final Pattern PATRON_BANCO = Pattern.compile("(BBVA|BANAMEX|SANTANDER|HSBC|BANORTE|SCOTIABANK|INBURSA|NU)", Pattern.CASE_INSENSITIVE);
+    
+    // Patrones específicos por banco
+    private static final Pattern PATRON_FECHA_ESPANOL = Pattern.compile("(\\d{1,2})\\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\\s+(\\d{4})", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PATRON_FECHA_ABREV = Pattern.compile("(\\d{1,2})\\s+(ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|OCT|NOV|DIC)\\s+(\\d{4})", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PATRON_REFERENCIA_BBVA = Pattern.compile("(MBAN\\d{18,24})");
+    private static final Pattern PATRON_REFERENCIA_NU = Pattern.compile("(NU[A-Z0-9]{24,30})");
 
     // Constructor privado para Singleton
     private MotorOCR() {
@@ -132,12 +138,28 @@ public class MotorOCR {
     private String detectarBanco(String texto) {
         Matcher matcher = PATRON_BANCO.matcher(texto.toUpperCase());
         if (matcher.find()) {
-            return matcher.group(1);
+            String banco = matcher.group(1).toUpperCase();
+            // Normalizar nombres de banco
+            if ("NU".equals(banco)) {
+                return "NU";
+            }
+            return banco;
         }
         return null;
     }
 
     private BigDecimal detectarMonto(String texto) {
+        String bancoDetectado = detectarBanco(texto);
+        
+        // Intentar extracción específica por banco primero
+        if (bancoDetectado != null) {
+            BigDecimal monto = detectarMontoPorBanco(texto, bancoDetectado);
+            if (monto != null) {
+                return monto;
+            }
+        }
+        
+        // Fallback al método genérico
         Matcher matcher = PATRON_MONTO.matcher(texto);
         while (matcher.find()) {
             try {
@@ -153,8 +175,53 @@ public class MotorOCR {
         }
         return null;
     }
+    
+    private BigDecimal detectarMontoPorBanco(String texto, String banco) {
+        String etiquetaBuscar = null;
+        
+        switch (banco) {
+            case "BBVA":
+                etiquetaBuscar = "Importe transferido";
+                break;
+            case "NU":
+                etiquetaBuscar = "Monto";
+                break;
+            default:
+                return null;
+        }
+        
+        String montoStr = buscarValorPorEtiqueta(texto, etiquetaBuscar);
+        if (montoStr != null) {
+            try {
+                // Limpiar y convertir el monto
+                montoStr = montoStr.replaceAll("[^0-9.,]", "").replace(",", "");
+                return new BigDecimal(montoStr);
+            } catch (NumberFormatException e) {
+                // Si falla, continuar con método genérico
+            }
+        }
+        
+        return null;
+    }
 
     private LocalDateTime detectarFecha(String texto) {
+        String bancoDetectado = detectarBanco(texto);
+        
+        // Intentar detección específica por banco primero
+        if (bancoDetectado != null) {
+            LocalDateTime fecha = detectarFechaPorBanco(texto, bancoDetectado);
+            if (fecha != null) {
+                return fecha;
+            }
+        }
+        
+        // Intentar formatos en español
+        LocalDateTime fechaEspanol = detectarFechaEspanol(texto);
+        if (fechaEspanol != null) {
+            return fechaEspanol;
+        }
+        
+        // Fallback al método original
         Matcher matcher = PATRON_FECHA.matcher(texto);
         if (matcher.find()) {
             String fechaStr = matcher.group(1);
@@ -177,18 +244,136 @@ public class MotorOCR {
         }
         return null;
     }
+    
+    private LocalDateTime detectarFechaPorBanco(String texto, String banco) {
+        // Para ahora, usar el método genérico de fechas en español
+        // Se puede especializar más si cada banco tiene formatos muy específicos
+        return detectarFechaEspanol(texto);
+    }
+    
+    private LocalDateTime detectarFechaEspanol(String texto) {
+        // Mapa de meses en español
+        Map<String, Integer> mesesEspanol = new HashMap<>();
+        mesesEspanol.put("enero", 1); mesesEspanol.put("febrero", 2); mesesEspanol.put("marzo", 3);
+        mesesEspanol.put("abril", 4); mesesEspanol.put("mayo", 5); mesesEspanol.put("junio", 6);
+        mesesEspanol.put("julio", 7); mesesEspanol.put("agosto", 8); mesesEspanol.put("septiembre", 9);
+        mesesEspanol.put("octubre", 10); mesesEspanol.put("noviembre", 11); mesesEspanol.put("diciembre", 12);
+        
+        // Mapa de abreviaciones
+        Map<String, Integer> mesesAbrev = new HashMap<>();
+        mesesAbrev.put("ENE", 1); mesesAbrev.put("FEB", 2); mesesAbrev.put("MAR", 3);
+        mesesAbrev.put("ABR", 4); mesesAbrev.put("MAY", 5); mesesAbrev.put("JUN", 6);
+        mesesAbrev.put("JUL", 7); mesesAbrev.put("AGO", 8); mesesAbrev.put("SEP", 9);
+        mesesAbrev.put("OCT", 10); mesesAbrev.put("NOV", 11); mesesAbrev.put("DIC", 12);
+        
+        // Intentar formato completo
+        Matcher matcher = PATRON_FECHA_ESPANOL.matcher(texto);
+        if (matcher.find()) {
+            try {
+                int dia = Integer.parseInt(matcher.group(1));
+                String mesStr = matcher.group(2).toLowerCase();
+                int anio = Integer.parseInt(matcher.group(3));
+                
+                Integer mes = mesesEspanol.get(mesStr);
+                if (mes != null) {
+                    return LocalDateTime.of(anio, mes, dia, 0, 0);
+                }
+            } catch (Exception e) {
+                // Continuar con otros formatos
+            }
+        }
+        
+        // Intentar formato abreviado
+        matcher = PATRON_FECHA_ABREV.matcher(texto);
+        if (matcher.find()) {
+            try {
+                int dia = Integer.parseInt(matcher.group(1));
+                String mesStr = matcher.group(2).toUpperCase();
+                int anio = Integer.parseInt(matcher.group(3));
+                
+                Integer mes = mesesAbrev.get(mesStr);
+                if (mes != null) {
+                    return LocalDateTime.of(anio, mes, dia, 0, 0);
+                }
+            } catch (Exception e) {
+                // Continuar
+            }
+        }
+        
+        return null;
+    }
 
     private String detectarReferencia(String texto) {
+        String bancoDetectado = detectarBanco(texto);
+        
+        // Intentar detección específica por banco primero
+        if (bancoDetectado != null) {
+            String referencia = detectarReferenciaPorBanco(texto, bancoDetectado);
+            if (referencia != null) {
+                return referencia;
+            }
+        }
+        
+        // Fallback al método genérico
         Matcher matcher = PATRON_REFERENCIA.matcher(texto);
         if (matcher.find()) {
             return matcher.group(1);
         }
         return null;
     }
+    
+    private String detectarReferenciaPorBanco(String texto, String banco) {
+        String etiquetaBuscar = "Clave de rastreo";
+        
+        // Buscar por etiqueta primero
+        String referencia = buscarValorPorEtiqueta(texto, etiquetaBuscar);
+        if (referencia != null && !referencia.trim().isEmpty()) {
+            return referencia.trim();
+        }
+        
+        // Patrones específicos por banco
+        Pattern patron = null;
+        switch (banco) {
+            case "BBVA":
+                patron = PATRON_REFERENCIA_BBVA;
+                break;
+            case "NU":
+                patron = PATRON_REFERENCIA_NU;
+                break;
+        }
+        
+        if (patron != null) {
+            Matcher matcher = patron.matcher(texto);
+            if (matcher.find()) {
+                return matcher.group(1);
+            }
+        }
+        
+        return null;
+    }
 
     private String detectarCuentaRemitente(String texto) {
-        // Buscar patrones de cuenta (ej: ****1234, XXXX1234)
-        Pattern patronCuenta = Pattern.compile("(\\*{4}\\d{4}|X{4}\\d{4}|\\d{4}-\\d{4}-\\d{4}-\\d{4})");
+        String bancoDetectado = detectarBanco(texto);
+        
+        // Patrones específicos por banco
+        if ("BBVA".equals(bancoDetectado)) {
+            // BBVA usa formato "-3773"
+            Pattern patronBBVA = Pattern.compile("-(\\d{4})");
+            Matcher matcher = patronBBVA.matcher(texto);
+            if (matcher.find()) {
+                return matcher.group(0); // Incluir el guión
+            }
+        } else if ("NU".equals(bancoDetectado)) {
+            // NU usa formato "***0606"
+            Pattern patronNU = Pattern.compile("\\*{3}(\\d{4})");
+            Matcher matcher = patronNU.matcher(texto);
+            if (matcher.find()) {
+                return matcher.group(0); // Incluir los asteriscos
+            }
+        }
+        
+        // Fallback a patrones genéricos
+        Pattern patronCuenta = Pattern.compile("(\\*{3,4}\\d{4}|X{4}\\d{4}|\\d{4}-\\d{4}-\\d{4}-\\d{4}|-\\d{4})");
         Matcher matcher = patronCuenta.matcher(texto);
         if (matcher.find()) {
             return matcher.group(1);
@@ -197,7 +382,15 @@ public class MotorOCR {
     }
 
     private String detectarBeneficiario(String texto) {
-        // Buscar líneas que contengan "BENEFICIARIO" seguido de un nombre
+        String bancoDetectado = detectarBanco(texto);
+        
+        // Buscar por etiqueta primero
+        String beneficiario = buscarValorPorEtiqueta(texto, "Beneficiario");
+        if (beneficiario != null && !beneficiario.trim().isEmpty()) {
+            return beneficiario.trim();
+        }
+        
+        // Fallback al método original
         String[] lineas = texto.split("\\n");
         for (String linea : lineas) {
             if (linea.toUpperCase().contains("BENEFICIARIO")) {
@@ -207,6 +400,58 @@ public class MotorOCR {
                 }
             }
         }
+        return null;
+    }
+    
+    /**
+     * Busca un valor asociado a una etiqueta específica en el texto
+     * @param texto El texto completo extraído del OCR
+     * @param etiqueta La etiqueta a buscar (ej: "Monto", "Importe transferido", "Clave de rastreo")
+     * @return El valor encontrado o null si no se encuentra
+     */
+    private String buscarValorPorEtiqueta(String texto, String etiqueta) {
+        if (texto == null || etiqueta == null) {
+            return null;
+        }
+        
+        String[] lineas = texto.split("\\n");
+        
+        for (int i = 0; i < lineas.length; i++) {
+            String linea = lineas[i].trim();
+            
+            // Buscar la etiqueta en la línea actual
+            if (linea.toUpperCase().contains(etiqueta.toUpperCase())) {
+                // Caso 1: Etiqueta y valor en la misma línea separados por ":"
+                if (linea.contains(":")) {
+                    String[] partes = linea.split(":", 2);
+                    if (partes.length > 1) {
+                        String valor = partes[1].trim();
+                        if (!valor.isEmpty()) {
+                            return valor;
+                        }
+                    }
+                }
+                
+                // Caso 2: Valor en la siguiente línea
+                if (i + 1 < lineas.length) {
+                    String siguienteLinea = lineas[i + 1].trim();
+                    if (!siguienteLinea.isEmpty()) {
+                        return siguienteLinea;
+                    }
+                }
+                
+                // Caso 3: Buscar el valor al final de la misma línea
+                String lineaSinEtiqueta = linea.replaceFirst("(?i)" + Pattern.quote(etiqueta), "").trim();
+                if (!lineaSinEtiqueta.isEmpty()) {
+                    // Remover caracteres comunes como ":" al inicio
+                    lineaSinEtiqueta = lineaSinEtiqueta.replaceFirst("^[:\\s]+", "");
+                    if (!lineaSinEtiqueta.isEmpty()) {
+                        return lineaSinEtiqueta;
+                    }
+                }
+            }
+        }
+        
         return null;
     }
 
