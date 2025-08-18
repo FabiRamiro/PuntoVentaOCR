@@ -1,0 +1,21 @@
+⚡ **PRIORIDAD MÁXIMA SOLICITADA** ⚡
+
+@Copilot necesito que funcione al 100% para ambos comprobantes. Implementa todas las mejoras de inmediato:
+
+## 🎯 **Requisitos críticos:**
+
+1. **Extracción completa de BBVA**: Monto ($67.28), Referencia (MBAN...), Fecha (18 agosto 2025), Cuenta (-3773), Beneficiario
+2. **Extracción completa de NU**: Monto ($67.28), Referencia (NU38K...), Fecha (18 AGO 2025), Cuenta (***0606), Beneficiario
+3. **Robustez**: Debe funcionar aunque el OCR tenga pequeños errores de reconocimiento
+4. **Fallbacks**: Múltiples estrategias de extracción para cada campo
+5. **Compatibilidad**: Mantener funcionamiento para otros bancos
+
+## 📋 **Checklist de implementación:**
+- [ ] Métodos específicos por banco (BBVA, NU)  
+- [ ] Regex mejorados para montos con $ y decimales
+- [ ] Patrones flexibles para referencias largas
+- [ ] Múltiples formatos de fecha (agosto/AGO)
+- [ ] Extracción de cuentas con asteriscos y guiones
+- [ ] Detección robusta de beneficiarios
+
+**Tiempo objetivo: Implementación completa AHORA. Sin compromisos en funcionalidad.**
