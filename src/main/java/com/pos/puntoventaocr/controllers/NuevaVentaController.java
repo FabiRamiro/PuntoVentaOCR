@@ -207,10 +207,10 @@ public class NuevaVentaController implements Initializable {
 
                 System.out.println("Nueva venta iniciada - ID temporal: " + System.currentTimeMillis());
             } else {
-                AlertUtils.mostrarError("No hay usuario autenticado para iniciar venta", "");
+                AlertUtils.mostrarError("Error", "No hay usuario autenticado para iniciar venta");
             }
         } catch (Exception e) {
-            AlertUtils.mostrarError("Error al iniciar nueva venta: " + e.getMessage(), "");
+            AlertUtils.mostrarError("Error al iniciar nueva venta", e.getMessage());
             e.printStackTrace();
         }
     }
@@ -230,7 +230,7 @@ public class NuevaVentaController implements Initializable {
     private void handleAgregarProducto(ActionEvent event) {
         // VALIDACIÓN: Verificar que hay venta activa
         if (ventaActual == null) {
-            AlertUtils.mostrarError("No hay una venta activa. Inicie una nueva venta primero.", "");
+            AlertUtils.mostrarError("Error", "No hay una venta activa. Inicie una nueva venta primero.");
             return;
         }
         
@@ -246,7 +246,7 @@ public class NuevaVentaController implements Initializable {
     private void handleEliminarItem(ActionEvent event) {
         // VALIDACIÓN CRÍTICA
         if (ventaActual == null) {
-            AlertUtils.mostrarError("No hay una venta activa para modificar.", "");
+            AlertUtils.mostrarError("Error", "No hay una venta activa para modificar.");
             return;
         }
         
@@ -267,7 +267,7 @@ public class NuevaVentaController implements Initializable {
     private void handleModificarCantidad(ActionEvent event) {
         // VALIDACIÓN CRÍTICA
         if (ventaActual == null) {
-            AlertUtils.mostrarError("No hay una venta activa para editar.", "");
+            AlertUtils.mostrarError("Error", "No hay una venta activa para editar.");
             return;
         }
         
@@ -378,7 +378,7 @@ public class NuevaVentaController implements Initializable {
         if (event.getCode() == KeyCode.ENTER) {
             // VALIDACIÓN: Solo buscar si hay venta activa
             if (ventaActual == null) {
-                AlertUtils.mostrarError("Inicie una nueva venta antes de agregar productos", "");
+                AlertUtils.mostrarError("Error", "Inicie una nueva venta antes de agregar productos");
                 txtBuscarProducto.clear();
                 return;
             }
@@ -393,7 +393,7 @@ public class NuevaVentaController implements Initializable {
     private void buscarProductoPorCodigo(String codigo) {
         // VALIDACIÓN TEMPRANA
         if (ventaActual == null) {
-            AlertUtils.mostrarError("No hay una venta activa. Inicie una nueva venta primero.", "");
+            AlertUtils.mostrarError("Error", "No hay una venta activa. Inicie una nueva venta primero.");
             return;
         }
         
@@ -433,7 +433,7 @@ public class NuevaVentaController implements Initializable {
     private void agregarProductoAlCarrito(Producto producto) {
         // VALIDACIÓN CRÍTICA: Verificar que ventaActual existe
         if (ventaActual == null) {
-            AlertUtils.mostrarError("No hay una venta activa. Inicie una nueva venta primero.", "");
+            AlertUtils.mostrarError("Error", "No hay una venta activa. Inicie una nueva venta primero.");
             return;
         }
         
