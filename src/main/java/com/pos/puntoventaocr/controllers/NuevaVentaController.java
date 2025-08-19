@@ -189,19 +189,30 @@ public class NuevaVentaController implements Initializable {
     }
 
     private void inicializarVenta() {
-        ventaActual = new Venta();
-        ventaActual.setUsuario(sessionManager.getUsuarioActual());
+        try {
+            if (sessionManager != null && sessionManager.getUsuarioActual() != null) {
+                ventaActual = new Venta();
+                ventaActual.setUsuario(sessionManager.getUsuarioActual());
 
-        // Actualizar información en pantalla
-        lblNumeroVenta.setText(ventaActual.getNumeroVenta());
-        lblFechaHora.setText(LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
-        lblUsuario.setText(sessionManager.getUsuarioActual().getNombreCompleto());
+                // Actualizar información en pantalla
+                lblNumeroVenta.setText(ventaActual.getNumeroVenta());
+                lblFechaHora.setText(LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
+                lblUsuario.setText(sessionManager.getUsuarioActual().getNombreCompleto());
 
-        actualizarTotales();
-        btnEliminarItem.setDisable(true);
-        btnModificarCantidad.setDisable(true);
-        btnProcesarVenta.setDisable(true);
-        btnImprimirTicket.setDisable(true);
+                actualizarTotales();
+                btnEliminarItem.setDisable(true);
+                btnModificarCantidad.setDisable(true);
+                btnProcesarVenta.setDisable(true);
+                btnImprimirTicket.setDisable(true);
+
+                System.out.println("Nueva venta iniciada - ID temporal: " + System.currentTimeMillis());
+            } else {
+                AlertUtils.mostrarError("No hay usuario autenticado para iniciar venta", "");
+            }
+        } catch (Exception e) {
+            AlertUtils.mostrarError("Error al iniciar nueva venta: " + e.getMessage(), "");
+            e.printStackTrace();
+        }
     }
 
     private void cargarProductos() {
@@ -217,6 +228,12 @@ public class NuevaVentaController implements Initializable {
 
     @FXML
     private void handleAgregarProducto(ActionEvent event) {
+        // VALIDACIÓN: Verificar que hay venta activa
+        if (ventaActual == null) {
+            AlertUtils.mostrarError("No hay una venta activa. Inicie una nueva venta primero.", "");
+            return;
+        }
+        
         Producto productoSeleccionado = tableProductos.getSelectionModel().getSelectedItem();
         if (productoSeleccionado != null) {
             agregarProductoAlCarrito(productoSeleccionado);
@@ -227,6 +244,12 @@ public class NuevaVentaController implements Initializable {
 
     @FXML
     private void handleEliminarItem(ActionEvent event) {
+        // VALIDACIÓN CRÍTICA
+        if (ventaActual == null) {
+            AlertUtils.mostrarError("No hay una venta activa para modificar.", "");
+            return;
+        }
+        
         DetalleVenta detalleSeleccionado = tableCarrito.getSelectionModel().getSelectedItem();
         if (detalleSeleccionado != null) {
             if (AlertUtils.mostrarConfirmacion("Confirmar",
@@ -242,6 +265,12 @@ public class NuevaVentaController implements Initializable {
 
     @FXML
     private void handleModificarCantidad(ActionEvent event) {
+        // VALIDACIÓN CRÍTICA
+        if (ventaActual == null) {
+            AlertUtils.mostrarError("No hay una venta activa para editar.", "");
+            return;
+        }
+        
         DetalleVenta detalleSeleccionado = tableCarrito.getSelectionModel().getSelectedItem();
         if (detalleSeleccionado != null) {
             TextInputDialog dialog = new TextInputDialog(String.valueOf(detalleSeleccionado.getCantidad()));
@@ -347,6 +376,13 @@ public class NuevaVentaController implements Initializable {
 
     private void handleBuscarProducto(KeyEvent event) {
         if (event.getCode() == KeyCode.ENTER) {
+            // VALIDACIÓN: Solo buscar si hay venta activa
+            if (ventaActual == null) {
+                AlertUtils.mostrarError("Inicie una nueva venta antes de agregar productos", "");
+                txtBuscarProducto.clear();
+                return;
+            }
+            
             String codigo = txtBuscarProducto.getText().trim();
             if (!codigo.isEmpty()) {
                 buscarProductoPorCodigo(codigo);
@@ -355,6 +391,12 @@ public class NuevaVentaController implements Initializable {
     }
 
     private void buscarProductoPorCodigo(String codigo) {
+        // VALIDACIÓN TEMPRANA
+        if (ventaActual == null) {
+            AlertUtils.mostrarError("No hay una venta activa. Inicie una nueva venta primero.", "");
+            return;
+        }
+        
         try {
             Producto producto = productoDAO.buscarPorCodigoBarras(codigo);
             if (producto != null) {
@@ -389,6 +431,12 @@ public class NuevaVentaController implements Initializable {
     }
 
     private void agregarProductoAlCarrito(Producto producto) {
+        // VALIDACIÓN CRÍTICA: Verificar que ventaActual existe
+        if (ventaActual == null) {
+            AlertUtils.mostrarError("No hay una venta activa. Inicie una nueva venta primero.", "");
+            return;
+        }
+        
         if (producto.getCantidadStock() <= 0) {
             AlertUtils.mostrarAdvertencia("Sin Stock",
                     "El producto " + producto.getNombre() + " no tiene stock disponible");
@@ -455,7 +503,7 @@ public class NuevaVentaController implements Initializable {
     }
 
     private void calcularCambio() {
-        if ("EFECTIVO".equals(cmbMetodoPago.getValue())) {
+        if ("EFECTIVO".equals(cmbMetodoPago.getValue()) && ventaActual != null) {
             try {
                 BigDecimal efectivoRecibido = new BigDecimal(txtEfectivoRecibido.getText());
                 BigDecimal total = ventaActual.getTotal();
@@ -476,12 +524,27 @@ public class NuevaVentaController implements Initializable {
     }
 
     private void actualizarTotales() {
-        ventaActual.calcularTotales();
+        if (ventaActual != null) {
+            // Asegurar que los cálculos estén actualizados
+            ventaActual.calcularTotales();
+            
+            lblSubtotal.setText("$" + ventaActual.getSubtotal().toString());
+            lblImpuestos.setText("$" + ventaActual.getImpuestos().toString());
+            lblTotal.setText("$" + ventaActual.getTotal().toString());
+            lblCantidadArticulos.setText(String.valueOf(ventaActual.getCantidadArticulos()));
 
-        lblSubtotal.setText("$" + ventaActual.getSubtotal().toString());
-        lblImpuestos.setText("$" + ventaActual.getImpuestos().toString());
-        lblTotal.setText("$" + ventaActual.getTotal().toString());
-        lblCantidadArticulos.setText(String.valueOf(ventaActual.getCantidadArticulos()));
+            // Habilitar/deshabilitar botones correctamente
+            boolean tieneProductos = !carritoData.isEmpty() && ventaActual.getCantidadArticulos() > 0;
+            btnProcesarVenta.setDisable(!tieneProductos);
+        } else {
+            // Estado sin venta activa
+            lblSubtotal.setText("$0.00");
+            lblImpuestos.setText("$0.00");
+            lblTotal.setText("$0.00");
+            lblCantidadArticulos.setText("0");
+
+            btnProcesarVenta.setDisable(true);
+        }
 
         calcularCambio();
     }
