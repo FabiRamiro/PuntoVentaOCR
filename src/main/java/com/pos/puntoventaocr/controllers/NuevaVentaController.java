@@ -253,8 +253,11 @@ public class NuevaVentaController implements Initializable {
                 try {
                     int nuevaCantidad = Integer.parseInt(cantidadStr);
                     if (nuevaCantidad > 0) {
-                        // Verificar stock disponible
-                        if (nuevaCantidad <= detalleSeleccionado.getProducto().getCantidadStock()) {
+                        // Verificar stock disponible considerando la cantidad actual en el carrito
+                        int cantidadActual = detalleSeleccionado.getCantidad();
+                        int stockDisponible = detalleSeleccionado.getProducto().getCantidadStock() + cantidadActual;
+                        
+                        if (nuevaCantidad <= stockDisponible) {
                             detalleSeleccionado.setCantidad(nuevaCantidad);
                             tableCarrito.refresh();
                             actualizarTotales();
@@ -262,7 +265,9 @@ public class NuevaVentaController implements Initializable {
                                     detalleSeleccionado.getProducto().getNombre() + " x" + nuevaCantidad);
                         } else {
                             AlertUtils.mostrarError("Stock Insuficiente",
-                                    "Stock disponible: " + detalleSeleccionado.getProducto().getCantidadStock());
+                                    "Stock total disponible: " + stockDisponible + 
+                                    " (Stock actual: " + detalleSeleccionado.getProducto().getCantidadStock() + 
+                                    " + En carrito: " + cantidadActual + ")");
                         }
                     } else {
                         AlertUtils.mostrarError("Cantidad Inválida", "La cantidad debe ser mayor a 0");
@@ -337,10 +342,12 @@ public class NuevaVentaController implements Initializable {
                 "Funcionalidad de impresión implementada\n" +
                         "Ticket enviado a impresora predeterminada");
 
-        // Después de imprimir, ofrecer nueva venta
-        if (AlertUtils.mostrarConfirmacion("Nueva Venta", "¿Desea realizar una nueva venta?")) {
-            reiniciarVenta();
-        }
+        // Limpiar automáticamente la interfaz después de generar PDF/ticket exitosamente
+        reiniciarVenta();
+        
+        AlertUtils.mostrarInformacion("Nueva Venta", 
+                "La interfaz se ha limpiado automáticamente.\n" + 
+                "Puede comenzar una nueva venta inmediatamente.");
     }
 
     // === MÉTODOS AUXILIARES ===
