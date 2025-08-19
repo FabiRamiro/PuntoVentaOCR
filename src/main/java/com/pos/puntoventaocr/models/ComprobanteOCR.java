@@ -64,7 +64,158 @@ public class ComprobanteOCR {
         this.fechaValidacion = LocalDateTime.now();
     }
 
-    // Getters y Setters
+    // ✅ MÉTODOS DE VALIDACIÓN CORREGIDOS
+    public boolean coincideMontoConVenta() {
+        if (this.venta == null || this.montoDetectado == null) {
+            return false;
+        }
+
+        // Validación MEJORADA del monto para manejar diferencias de decimales
+        BigDecimal montoVenta = this.venta.getTotal();
+        BigDecimal montoDetectado = this.montoDetectado;
+
+        // Normalizar ambos montos a 2 decimales para comparación
+        montoVenta = montoVenta.setScale(2, BigDecimal.ROUND_HALF_UP);
+        montoDetectado = montoDetectado.setScale(2, BigDecimal.ROUND_HALF_UP);
+
+        // Comparar con una tolerancia muy pequeña para diferencias de redondeo
+        BigDecimal diferencia = montoDetectado.subtract(montoVenta).abs();
+        boolean montoCoincide = diferencia.compareTo(new BigDecimal("0.01")) <= 0;
+
+        // Log para debugging
+        System.out.println("Validación monto - Venta: " + montoVenta + ", Detectado: " + montoDetectado +
+                          ", Diferencia: " + diferencia + ", Coincide: " + montoCoincide);
+
+        return montoCoincide;
+    }
+
+    public boolean esFechaValida() {
+        // CORRECCIÓN: La fecha ahora es OPCIONAL
+        if (this.venta == null) {
+            return false;
+        }
+
+        // Si no se detectó fecha en el comprobante, se considera válido
+        if (this.fechaTransferencia == null) {
+            System.out.println("Fecha no detectada en comprobante - Se considera válida (fecha opcional)");
+            return true; // FECHA OPCIONAL
+        }
+
+        // Si hay fecha, validar que sea coherente con la venta
+        LocalDate fechaVenta = this.venta.getFecha().toLocalDate();
+        LocalDate fechaTransferencia = this.fechaTransferencia;
+
+        // La transferencia debe ser el mismo día de la venta o máximo 1 día después
+        boolean fechaValida = !fechaTransferencia.isBefore(fechaVenta) &&
+                             !fechaTransferencia.isAfter(fechaVenta.plusDays(1));
+
+        System.out.println("Validación fecha - Venta: " + fechaVenta + ", Transferencia: " + fechaTransferencia +
+                          ", Válida: " + fechaValida);
+
+        return fechaValida;
+    }
+
+    /**
+     * Validación específica para verificar que el comprobante corresponde exactamente a la venta
+     * @return true si el comprobante es específico para esta venta
+     */
+    public boolean esEspecificoParaVenta() {
+        if (this.venta == null) {
+            return false;
+        }
+
+        // Verificaciones específicas:
+        // 1. Monto debe coincidir exactamente
+        boolean montoEspecifico = coincideMontoConVenta();
+
+        // 2. Fecha debe estar en el rango correcto
+        boolean fechaEspecifica = esFechaValida();
+
+        // 3. La venta debe ser por transferencia
+        boolean esTransferencia = "TRANSFERENCIA".equals(this.venta.getMetodoPago());
+
+        // 4. La venta debe estar completada
+        boolean ventaCompletada = "COMPLETADA".equals(this.venta.getEstado());
+
+        return montoEspecifico && fechaEspecifica && esTransferencia && ventaCompletada;
+    }
+
+    /**
+     * Obtiene un puntaje de coincidencia con la venta (0-100)
+     * @return puntaje de 0 a 100 indicando qué tan bien coincide el comprobante con la venta
+     */
+    public int getPuntajeCoincidencia() {
+        if (this.venta == null) {
+            return 0;
+        }
+
+        int puntaje = 0;
+
+        // Monto (40 puntos máximo)
+        if (this.montoDetectado != null) {
+            BigDecimal diferencia = this.montoDetectado.subtract(this.venta.getTotal()).abs();
+            if (diferencia.compareTo(BigDecimal.ZERO) == 0) {
+                puntaje += 40; // Coincidencia exacta
+            } else if (diferencia.compareTo(new BigDecimal("0.01")) <= 0) {
+                puntaje += 35; // Diferencia mínima de redondeo
+            } else if (diferencia.compareTo(new BigDecimal("1.00")) <= 0) {
+                puntaje += 20; // Diferencia pequeña
+            } else if (diferencia.compareTo(new BigDecimal("10.00")) <= 0) {
+                puntaje += 10; // Diferencia moderada
+            }
+        }
+
+        // Fecha (30 puntos máximo)
+        if (this.fechaTransferencia != null) {
+            LocalDate fechaVenta = this.venta.getFecha().toLocalDate();
+            if (this.fechaTransferencia.equals(fechaVenta)) {
+                puntaje += 30; // Mismo día
+            } else if (this.fechaTransferencia.equals(fechaVenta.plusDays(1))) {
+                puntaje += 25; // Día siguiente
+            } else if (!this.fechaTransferencia.isBefore(fechaVenta.minusDays(1)) &&
+                      !this.fechaTransferencia.isAfter(fechaVenta.plusDays(2))) {
+                puntaje += 15; // Dentro de rango razonable
+            }
+        }
+
+        // Método de pago (20 puntos máximo)
+        if ("TRANSFERENCIA".equals(this.venta.getMetodoPago())) {
+            puntaje += 20;
+        }
+
+        // Referencia válida (10 puntos máximo)
+        if (referenciaEsUnica()) {
+            puntaje += 10;
+        }
+
+        return Math.min(puntaje, 100);
+    }
+
+    /**
+     * Verifica si la referencia de operación es única y válida
+     * @return true si la referencia cumple con los criterios de validez
+     */
+    public boolean referenciaEsUnica() {
+        return this.referenciaOperacion != null &&
+               !this.referenciaOperacion.trim().isEmpty() &&
+               this.referenciaOperacion.length() >= 6; // Mínimo 6 caracteres para ser válida
+    }
+
+    // Método para marcar errores de procesamiento OCR
+    public void marcarErrorProcesamiento(String mensajeError) {
+        this.estadoValidacion = "ERROR";
+        this.observaciones = mensajeError;
+        this.fechaValidacion = LocalDateTime.now();
+    }
+
+    // Método para verificar si hay errores de procesamiento
+    public boolean tieneErrorProcesamiento() {
+        return "ERROR".equals(this.estadoValidacion) ||
+               (this.observaciones != null && this.observaciones.contains("ERROR"));
+    }
+
+    // =================== GETTERS Y SETTERS ===================
+    
     public int getIdComprobante() {
         return idComprobante;
     }
@@ -265,156 +416,6 @@ public class ComprobanteOCR {
 
     public void setEstado(String estado) {
         this.estadoValidacion = estado;
-    }
-
-    // Métodos de validación para el controlador
-    public boolean coincideMontoConVenta() {
-        if (this.venta == null || this.montoDetectado == null) {
-            return false;
-        }
-
-        // Validación MEJORADA del monto para manejar diferencias de decimales
-        BigDecimal montoVenta = this.venta.getTotal();
-        BigDecimal montoDetectado = this.montoDetectado;
-
-        // Normalizar ambos montos a 2 decimales para comparación
-        montoVenta = montoVenta.setScale(2, BigDecimal.ROUND_HALF_UP);
-        montoDetectado = montoDetectado.setScale(2, BigDecimal.ROUND_HALF_UP);
-
-        // Comparar con una tolerancia muy pequeña para diferencias de redondeo
-        BigDecimal diferencia = montoDetectado.subtract(montoVenta).abs();
-        boolean montoCoincide = diferencia.compareTo(new BigDecimal("0.01")) <= 0;
-
-        // Log para debugging
-        System.out.println("Validación monto - Venta: " + montoVenta + ", Detectado: " + montoDetectado +
-                          ", Diferencia: " + diferencia + ", Coincide: " + montoCoincide);
-
-        return montoCoincide;
-    }
-
-    public boolean esFechaValida() {
-        // CORRECCIÓN: La fecha ahora es OPCIONAL
-        if (this.venta == null) {
-            return false;
-        }
-
-        // Si no se detectó fecha en el comprobante, se considera válido
-        if (this.fechaTransferencia == null) {
-            System.out.println("Fecha no detectada en comprobante - Se considera válida (fecha opcional)");
-            return true; // FECHA OPCIONAL
-        }
-
-        // Si hay fecha, validar que sea coherente con la venta
-        LocalDate fechaVenta = this.venta.getFecha().toLocalDate();
-        LocalDate fechaTransferencia = this.fechaTransferencia;
-
-        // La transferencia debe ser el mismo día de la venta o máximo 1 día después
-        boolean fechaValida = !fechaTransferencia.isBefore(fechaVenta) &&
-                             !fechaTransferencia.isAfter(fechaVenta.plusDays(1));
-
-        System.out.println("Validación fecha - Venta: " + fechaVenta + ", Transferencia: " + fechaTransferencia +
-                          ", Válida: " + fechaValida);
-
-        return fechaValida;
-    }
-
-    /**
-     * Validación específica para verificar que el comprobante corresponde exactamente a la venta
-     * @return true si el comprobante es específico para esta venta
-     */
-    public boolean esEspecificoParaVenta() {
-        if (this.venta == null) {
-            return false;
-        }
-
-        // Verificaciones específicas:
-        // 1. Monto debe coincidir exactamente
-        boolean montoEspecifico = coincideMontoConVenta();
-
-        // 2. Fecha debe estar en el rango correcto
-        boolean fechaEspecifica = esFechaValida();
-
-        // 3. La venta debe ser por transferencia
-        boolean esTransferencia = "TRANSFERENCIA".equals(this.venta.getMetodoPago());
-
-        // 4. La venta debe estar completada
-        boolean ventaCompletada = "COMPLETADA".equals(this.venta.getEstado());
-
-        return montoEspecifico && fechaEspecifica && esTransferencia && ventaCompletada;
-    }
-
-    /**
-     * Obtiene un puntaje de coincidencia con la venta (0-100)
-     * @return puntaje de 0 a 100 indicando qué tan bien coincide el comprobante con la venta
-     */
-    public int getPuntajeCoincidencia() {
-        if (this.venta == null) {
-            return 0;
-        }
-
-        int puntaje = 0;
-
-        // Monto (40 puntos máximo)
-        if (this.montoDetectado != null) {
-            BigDecimal diferencia = this.montoDetectado.subtract(this.venta.getTotal()).abs();
-            if (diferencia.compareTo(BigDecimal.ZERO) == 0) {
-                puntaje += 40; // Coincidencia exacta
-            } else if (diferencia.compareTo(new BigDecimal("0.01")) <= 0) {
-                puntaje += 35; // Diferencia mínima de redondeo
-            } else if (diferencia.compareTo(new BigDecimal("1.00")) <= 0) {
-                puntaje += 20; // Diferencia pequeña
-            } else if (diferencia.compareTo(new BigDecimal("10.00")) <= 0) {
-                puntaje += 10; // Diferencia moderada
-            }
-        }
-
-        // Fecha (30 puntos máximo)
-        if (this.fechaTransferencia != null) {
-            LocalDate fechaVenta = this.venta.getFecha().toLocalDate();
-            if (this.fechaTransferencia.equals(fechaVenta)) {
-                puntaje += 30; // Mismo día
-            } else if (this.fechaTransferencia.equals(fechaVenta.plusDays(1))) {
-                puntaje += 25; // Día siguiente
-            } else if (!this.fechaTransferencia.isBefore(fechaVenta.minusDays(1)) &&
-                      !this.fechaTransferencia.isAfter(fechaVenta.plusDays(2))) {
-                puntaje += 15; // Dentro de rango razonable
-            }
-        }
-
-        // Método de pago (20 puntos máximo)
-        if ("TRANSFERENCIA".equals(this.venta.getMetodoPago())) {
-            puntaje += 20;
-        }
-
-        // Referencia válida (10 puntos máximo)
-        if (referenciaEsUnica()) {
-            puntaje += 10;
-        }
-
-        return Math.min(puntaje, 100);
-    }
-
-    /**
-     * Verifica si la referencia de operación es única y válida
-     * @return true si la referencia cumple con los criterios de validez
-     */
-    public boolean referenciaEsUnica() {
-        return this.referenciaOperacion != null &&
-               !this.referenciaOperacion.trim().isEmpty() &&
-               this.referenciaOperacion.length() >= 6; // Mínimo 6 caracteres para ser válida
-    }
-
-    // Método para marcar errores de procesamiento OCR
-    public void marcarErrorProcesamiento(String mensajeError) {
-        this.estadoValidacion = "ERROR";
-        this.observaciones = mensajeError;
-        this.fechaValidacion = LocalDateTime.now();
-    }
-
-    // Método para verificar si hay errores de procesamiento
-    public boolean tieneErrorProcesamiento() {
-        return "ERROR".equals(this.estadoValidacion) ||
-               (this.observaciones != null && this.observaciones.contains("ERROR"));
     }
 
     @Override

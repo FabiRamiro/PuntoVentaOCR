@@ -18,6 +18,7 @@ import java.io.File;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class ValidarOCRController {
@@ -81,7 +82,7 @@ public class ValidarOCRController {
         ventaDAO = new VentaDAO();
         bitacoraDAO = new BitacoraDAO();
         sessionManager = SessionManager.getInstance();
-        motorOCR = new MotorOCR();
+        motorOCR = MotorOCR.getInstance(); // ✅ CAMBIO: Usar getInstance() en lugar del constructor
 
         configurarEventos();
         resetearFormulario();
@@ -163,7 +164,8 @@ public class ValidarOCRController {
             long inicioTiempo = System.currentTimeMillis();
 
             try {
-                comprobanteActual = motorOCR.procesarComprobante(rutaArchivo);
+                // ✅ CAMBIO: Crear el comprobante manualmente y procesarlo
+                comprobanteActual = procesarComprobanteManual(rutaArchivo);
 
                 javafx.application.Platform.runLater(() -> {
                     long tiempoTotal = System.currentTimeMillis() - inicioTiempo;
@@ -186,11 +188,18 @@ public class ValidarOCRController {
                         if (idUsuario != null && idUsuario > 0) {
                             int productosDetectados = comprobanteActual.getMontoDetectado() != null ? 1 : 0;
                             bitacoraDAO.registrarProcesamientoOCR(idUsuario,
-                                new File(rutaArchivo).getName(), productosDetectados, "EXITOSO");
+                                    new File(rutaArchivo).getName(), productosDetectados, "EXITOSO");
                         }
 
+                        // ✅ ACTIVAR FLAG ANTES DE MOSTRAR DATOS
+                        actualizandoDesdeDatos = true;
                         mostrarDatosExtraidos();
-                        validarDatosAutomatico();
+                        // ✅ DESACTIVAR FLAG DESPUÉS DE UN DELAY
+                        javafx.application.Platform.runLater(() -> {
+                            actualizandoDesdeDatos = false;
+                            System.out.println("🔓 Flag de actualización desactivado - validación automática habilitada");
+                        });
+
                         lblEstadoProceso.setText("OCR completado exitosamente");
                     }
 
@@ -212,20 +221,169 @@ public class ValidarOCRController {
         ocrThread.start();
     }
 
-    private void mostrarDatosExtraidos() {
-        if (comprobanteActual == null) return;
+    // ✅ NUEVO MÉTODO: Procesar comprobante manualmente
+    private ComprobanteOCR procesarComprobanteManual(String rutaArchivo) {
+        try {
+            // Crear comprobante vacío
+            ComprobanteOCR comprobante = new ComprobanteOCR();
+            comprobante.setImagenOriginal(rutaArchivo);
 
-        txtBancoEmisor.setText(comprobanteActual.getBancoEmisor() != null ?
-                              comprobanteActual.getBancoEmisor() : "");
-        txtReferencia.setText(comprobanteActual.getReferenciaOperacion() != null ?
-                             comprobanteActual.getReferenciaOperacion() : "");
-        txtMonto.setText(comprobanteActual.getMontoDetectado() != null ?
-                        comprobanteActual.getMontoDetectado().toString() : "");
-        dpFecha.setValue(comprobanteActual.getFechaTransferencia());
-        txtCuentaRemitente.setText(comprobanteActual.getCuentaRemitente() != null ?
-                                  comprobanteActual.getCuentaRemitente() : "");
-        txtBeneficiario.setText(comprobanteActual.getNombreBeneficiario() != null ?
-                               comprobanteActual.getNombreBeneficiario() : "");
+            // Procesar con OCR
+            String textoExtraido = motorOCR.procesar(rutaArchivo);
+            if (textoExtraido == null || textoExtraido.trim().isEmpty()) {
+                comprobante.setObservaciones("ERROR: No se pudo extraer texto de la imagen");
+                return comprobante;
+            }
+
+            // Detectar campos
+            Map<String, Object> campos = motorOCR.detectarCampos(textoExtraido);
+
+            // ✅ ARREGLO: Log para debug antes de asignar
+            System.out.println("🔧 ASIGNANDO CAMPOS AL COMPROBANTE:");
+
+            // Asignar campos detectados
+            if (campos.containsKey("bancoEmisor")) {
+                String banco = (String) campos.get("bancoEmisor");
+                comprobante.setBancoEmisor(banco);
+                System.out.println("   ✅ Banco asignado: " + banco);
+            }
+
+            if (campos.containsKey("montoDetectado")) {
+                BigDecimal monto = (BigDecimal) campos.get("montoDetectado");
+                comprobante.setMontoDetectado(monto);
+                System.out.println("   ✅ Monto asignado: " + monto);
+            }
+
+            if (campos.containsKey("fechaTransferencia")) {
+                Object fecha = campos.get("fechaTransferencia");
+                if (fecha instanceof java.time.LocalDateTime) {
+                    LocalDate fechaLocal = ((java.time.LocalDateTime) fecha).toLocalDate();
+                    comprobante.setFechaTransferencia(fechaLocal);
+                    System.out.println("   ✅ Fecha asignada: " + fechaLocal);
+                }
+            }
+
+            if (campos.containsKey("referenciaOperacion")) {
+                String referencia = (String) campos.get("referenciaOperacion");
+                comprobante.setReferenciaOperacion(referencia);
+                System.out.println("   ✅ Referencia asignada: " + referencia);
+            }
+
+            if (campos.containsKey("cuentaRemitente")) {
+                String cuenta = (String) campos.get("cuentaRemitente");
+                comprobante.setCuentaRemitente(cuenta);
+                System.out.println("   ✅ Cuenta asignada: " + cuenta);
+            }
+
+            if (campos.containsKey("nombreBeneficiario")) {
+                String beneficiario = (String) campos.get("nombreBeneficiario");
+                comprobante.setNombreBeneficiario(beneficiario);
+                System.out.println("   ✅ Beneficiario asignado: " + beneficiario);
+            }
+
+            // Guardar datos extraídos como JSON
+            comprobante.setDatosExtraidos(convertirCamposAJson(campos));
+
+            // ✅ VERIFICACIÓN FINAL
+            System.out.println("🎯 COMPROBANTE FINAL:");
+            System.out.println("   - Banco: " + comprobante.getBancoEmisor());
+            System.out.println("   - Monto: " + comprobante.getMontoDetectado());
+            System.out.println("   - Referencia: " + comprobante.getReferenciaOperacion());
+            System.out.println("   - Fecha: " + comprobante.getFechaTransferencia());
+            System.out.println("   - Cuenta: " + comprobante.getCuentaRemitente());
+            System.out.println("   - Beneficiario: " + comprobante.getNombreBeneficiario());
+
+            return comprobante;
+
+        } catch (Exception e) {
+            System.err.println("Error procesando comprobante: " + e.getMessage());
+            e.printStackTrace();
+            ComprobanteOCR comprobante = new ComprobanteOCR();
+            comprobante.setImagenOriginal(rutaArchivo);
+            comprobante.setObservaciones("ERROR: " + e.getMessage());
+            return comprobante;
+        }
+    }
+
+    private void mostrarDatosExtraidos() {
+        if (comprobanteActual == null) {
+            System.out.println("❌ comprobanteActual es null en mostrarDatosExtraidos()");
+            return;
+        }
+
+        // ✅ ARREGLO: DESACTIVAR TEMPORALMENTE LOS LISTENERS PARA EVITAR SOBRESCRIBIR
+        System.out.println("🔧 DESACTIVANDO LISTENERS TEMPORALMENTE...");
+
+        // ✅ Log para debug
+        System.out.println("🖥️ MOSTRANDO DATOS EN INTERFAZ:");
+        System.out.println("   - Banco: " + comprobanteActual.getBancoEmisor());
+        System.out.println("   - Monto: " + comprobanteActual.getMontoDetectado());
+        System.out.println("   - Referencia: " + comprobanteActual.getReferenciaOperacion());
+        System.out.println("   - Fecha: " + comprobanteActual.getFechaTransferencia());
+        System.out.println("   - Cuenta: " + comprobanteActual.getCuentaRemitente());
+        System.out.println("   - Beneficiario: " + comprobanteActual.getNombreBeneficiario());
+
+        // ✅ BLOQUEAR TEMPORALMENTE LA VALIDACIÓN AUTOMÁTICA
+        boolean bloqueadoTemp = true;
+
+        // ✅ VERIFICAR QUE LOS CAMPOS NO SEAN NULL ANTES DE ASIGNAR
+        if (comprobanteActual.getBancoEmisor() != null) {
+            txtBancoEmisor.setText(comprobanteActual.getBancoEmisor());
+            System.out.println("   ✅ Banco mostrado en interfaz: " + comprobanteActual.getBancoEmisor());
+        } else {
+            txtBancoEmisor.setText("");
+            System.out.println("   ⚠️ Banco es null");
+        }
+
+        if (comprobanteActual.getReferenciaOperacion() != null) {
+            txtReferencia.setText(comprobanteActual.getReferenciaOperacion());
+            System.out.println("   ✅ Referencia mostrada en interfaz: " + comprobanteActual.getReferenciaOperacion());
+        } else {
+            txtReferencia.setText("");
+            System.out.println("   ⚠️ Referencia es null");
+        }
+
+        if (comprobanteActual.getMontoDetectado() != null) {
+            txtMonto.setText(comprobanteActual.getMontoDetectado().toString());
+            System.out.println("   ✅ Monto mostrado en interfaz: " + comprobanteActual.getMontoDetectado());
+        } else {
+            txtMonto.setText("");
+            System.out.println("   ⚠️ Monto es null");
+        }
+
+        if (comprobanteActual.getFechaTransferencia() != null) {
+            dpFecha.setValue(comprobanteActual.getFechaTransferencia());
+            System.out.println("   ✅ Fecha mostrada en interfaz: " + comprobanteActual.getFechaTransferencia());
+        } else {
+            dpFecha.setValue(null);
+            System.out.println("   ⚠️ Fecha es null");
+        }
+
+        if (comprobanteActual.getCuentaRemitente() != null) {
+            txtCuentaRemitente.setText(comprobanteActual.getCuentaRemitente());
+            System.out.println("   ✅ Cuenta mostrada en interfaz: " + comprobanteActual.getCuentaRemitente());
+        } else {
+            txtCuentaRemitente.setText("");
+            System.out.println("   ⚠️ Cuenta es null");
+        }
+
+        if (comprobanteActual.getNombreBeneficiario() != null) {
+            txtBeneficiario.setText(comprobanteActual.getNombreBeneficiario());
+            System.out.println("   ✅ Beneficiario mostrado en interfaz: " + comprobanteActual.getNombreBeneficiario());
+        } else {
+            txtBeneficiario.setText("");
+            System.out.println("   ⚠️ Beneficiario es null");
+        }
+
+        // ✅ REACTIVAR LISTENERS Y VALIDAR DESPUÉS DE MOSTRAR DATOS
+        bloqueadoTemp = false;
+        System.out.println("🔧 REACTIVANDO LISTENERS...");
+
+        // ✅ AHORA SÍ VALIDAR CON LOS DATOS YA MOSTRADOS
+        javafx.application.Platform.runLater(() -> {
+            System.out.println("⏰ EJECUTANDO VALIDACIÓN DESPUÉS DE MOSTRAR DATOS...");
+            validarDatosAutomatico();
+        });
 
         // NUEVA FUNCIONALIDAD: Búsqueda automática de ventas candidatas
         // Solo si no hay venta ya asociada (cuando se abre desde ventas, ya viene asociada)
@@ -234,8 +392,36 @@ public class ValidarOCRController {
         }
     }
 
+    // ✅ NUEVO MÉTODO: Convertir campos a JSON
+    private String convertirCamposAJson(Map<String, Object> campos) {
+        StringBuilder json = new StringBuilder("{");
+        boolean primero = true;
+
+        for (Map.Entry<String, Object> entry : campos.entrySet()) {
+            if (!primero) {
+                json.append(",");
+            }
+            json.append("\"").append(entry.getKey()).append("\":\"")
+                    .append(entry.getValue() != null ? entry.getValue().toString() : "").append("\"");
+            primero = false;
+        }
+
+        json.append("}");
+        return json.toString();
+    }
+
+    private boolean actualizandoDesdeDatos = false; // Flag para evitar loops
+
     private void validarDatosAutomatico() {
         if (comprobanteActual == null) return;
+
+        // ✅ EVITAR SOBRESCRIBIR DURANTE LA CARGA INICIAL
+        if (actualizandoDesdeDatos) {
+            System.out.println("⏸️ Validación pausada - actualizando desde datos extraídos");
+            return;
+        }
+
+        System.out.println("🔍 INICIANDO VALIDACIÓN AUTOMÁTICA...");
 
         // Actualizar datos del comprobante con los valores del formulario
         actualizarComprobanteDesdeFormulario();
@@ -251,9 +437,9 @@ public class ValidarOCRController {
 
             // Mostrar información de coincidencia específica
             lblEstadoGeneral.setText(String.format("📊 Coincidencia con venta %s: %d%% %s",
-                ventaAsociada.getNumeroVenta(),
-                puntajeCoincidencia,
-                esEspecifico ? "(ESPECÍFICO)" : "(GENÉRICO)"));
+                    ventaAsociada.getNumeroVenta(),
+                    puntajeCoincidencia,
+                    esEspecifico ? "(ESPECÍFICO)" : "(GENÉRICO)"));
 
             if (puntajeCoincidencia >= 80) {
                 lblEstadoGeneral.setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
@@ -401,6 +587,74 @@ public class ValidarOCRController {
         // Solo habilitar validación si ES ESPECÍFICO para la venta
         btnValidar.setDisable(!(todasValidaciones && esEspecificoParaVenta));
         btnRechazar.setDisable(false);
+    }
+
+    // ✅ NUEVO MÉTODO: Actualización segura que no sobrescribe datos existentes
+    private void actualizarComprobanteDesdeFormularioSeguro() {
+        if (comprobanteActual == null) {
+            comprobanteActual = new ComprobanteOCR();
+            comprobanteActual.setImagenOriginal(txtRutaArchivo.getText());
+        }
+
+        System.out.println("🔄 ACTUALIZANDO COMPROBANTE DESDE FORMULARIO (MODO SEGURO):");
+
+        // ✅ SOLO ACTUALIZAR SI EL CAMPO TIENE DATOS Y EL COMPROBANTE NO TIENE DATOS AÚN
+        String bancoForm = txtBancoEmisor.getText().trim();
+        if (!bancoForm.isEmpty() && (comprobanteActual.getBancoEmisor() == null || comprobanteActual.getBancoEmisor().isEmpty())) {
+            comprobanteActual.setBancoEmisor(bancoForm);
+            System.out.println("   🔄 Banco actualizado desde formulario: " + bancoForm);
+        }
+
+        String referenciaForm = txtReferencia.getText().trim();
+        if (!referenciaForm.isEmpty() && (comprobanteActual.getReferenciaOperacion() == null || comprobanteActual.getReferenciaOperacion().isEmpty())) {
+            comprobanteActual.setReferenciaOperacion(referenciaForm);
+            System.out.println("   🔄 Referencia actualizada desde formulario: " + referenciaForm);
+        }
+
+        // Actualizar monto con validación mejorada
+        try {
+            String montoTexto = txtMonto.getText().trim();
+            if (!montoTexto.isEmpty() && comprobanteActual.getMontoDetectado() == null) {
+                // Limpiar el texto de monto (quitar $, comas, espacios)
+                montoTexto = montoTexto.replaceAll("[^0-9.]", "");
+                BigDecimal monto = new BigDecimal(montoTexto);
+                comprobanteActual.setMontoDetectado(monto);
+                System.out.println("   🔄 Monto actualizado desde formulario: " + monto);
+            }
+        } catch (NumberFormatException e) {
+            System.err.println("Formato de monto inválido: " + txtMonto.getText());
+        }
+
+        // Actualizar fecha SOLO si no hay fecha en el comprobante
+        if (dpFecha.getValue() != null && comprobanteActual.getFechaTransferencia() == null) {
+            comprobanteActual.setFechaTransferencia(dpFecha.getValue());
+            System.out.println("   🔄 Fecha actualizada desde formulario: " + dpFecha.getValue());
+        }
+
+        // Actualizar otros campos SOLO si están vacíos en el comprobante
+        String cuentaForm = txtCuentaRemitente.getText().trim();
+        if (!cuentaForm.isEmpty() && (comprobanteActual.getCuentaRemitente() == null || comprobanteActual.getCuentaRemitente().isEmpty())) {
+            comprobanteActual.setCuentaRemitente(cuentaForm);
+            System.out.println("   🔄 Cuenta actualizada desde formulario: " + cuentaForm);
+        }
+
+        String beneficiarioForm = txtBeneficiario.getText().trim();
+        if (!beneficiarioForm.isEmpty() && (comprobanteActual.getNombreBeneficiario() == null || comprobanteActual.getNombreBeneficiario().isEmpty())) {
+            comprobanteActual.setNombreBeneficiario(beneficiarioForm);
+            System.out.println("   🔄 Beneficiario actualizado desde formulario: " + beneficiarioForm);
+        }
+
+        // Asociar venta si existe
+        if (ventaAsociada != null) {
+            comprobanteActual.setVenta(ventaAsociada);
+        }
+
+        // Log para debugging
+        System.out.println("📋 ESTADO FINAL DEL COMPROBANTE:");
+        System.out.println("   - Monto: " + comprobanteActual.getMontoDetectado());
+        System.out.println("   - Referencia: " + comprobanteActual.getReferenciaOperacion());
+        System.out.println("   - Fecha: " + comprobanteActual.getFechaTransferencia());
+        System.out.println("   - Venta asociada: " + (ventaAsociada != null ? ventaAsociada.getNumeroVenta() : "ninguna"));
     }
 
     /**
