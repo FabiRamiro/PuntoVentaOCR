@@ -49,6 +49,10 @@ public class Producto {
         return cantidadStock <= 0;
     }
 
+    public boolean hayStock(int cantidadRequerida) {
+        return cantidadStock >= cantidadRequerida;
+    }
+
     public void reducirStock(int cantidad) {
         if (cantidadStock >= cantidad) {
             this.cantidadStock -= cantidad;
@@ -69,7 +73,7 @@ public class Producto {
 
     public double calcularMargenGanancia() {
         if (precioCompra.compareTo(BigDecimal.ZERO) > 0) {
-            return calcularGanancia().divide(precioCompra, 4, BigDecimal.ROUND_HALF_UP)
+            return calcularGanancia().divide(precioCompra, 4, java.math.RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100)).doubleValue();
         }
         return 0.0;

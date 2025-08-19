@@ -50,7 +50,7 @@ public class DetalleVenta {
 
     public double getPorcentajeDescuento() {
         if (getSubtotalSinDescuento().compareTo(BigDecimal.ZERO) > 0) {
-            return descuento.divide(getSubtotalSinDescuento(), 4, BigDecimal.ROUND_HALF_UP)
+            return descuento.divide(getSubtotalSinDescuento(), 4, java.math.RoundingMode.HALF_UP)
                     .multiply(BigDecimal.valueOf(100)).doubleValue();
         }
         return 0.0;

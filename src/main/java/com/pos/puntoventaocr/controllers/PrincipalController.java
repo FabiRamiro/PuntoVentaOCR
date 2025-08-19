@@ -3,6 +3,7 @@ package com.pos.puntoventaocr.controllers;
 import com.pos.puntoventaocr.utils.AlertUtils;
 import com.pos.puntoventaocr.utils.SessionManager;
 import com.pos.puntoventaocr.models.Usuario;
+import com.pos.puntoventaocr.models.Venta;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -374,6 +375,30 @@ public class PrincipalController implements Initializable {
         } catch (IOException e) {
             AlertUtils.mostrarError("Error", "No se pudo volver al login: " + e.getMessage());
             System.exit(0);
+        }
+    }
+
+    // Método para abrir pestaña OCR con venta preseleccionada
+    public void abrirPestanaOCRConVenta(Venta venta) {
+        try {
+            if (verificarPermiso("VALIDAR_OCR")) {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/ocr/validar_transferencia.fxml"));
+                Parent vista = loader.load();
+                
+                // Obtener el controlador y preseleccionar la venta
+                ValidarOCRController controller = loader.getController();
+                if (controller != null && venta != null) {
+                    // Aquí se podría agregar lógica para preseleccionar la venta en el OCR
+                    // Por ejemplo, precargar el número de venta en el formulario
+                }
+                
+                mainContainer.setCenter(vista);
+                sessionManager.registrarActividad("Navegación a OCR con venta: " + 
+                    (venta != null ? venta.getNumeroVenta() : "sin venta"));
+            }
+        } catch (Exception e) {
+            AlertUtils.mostrarError("Error", "No se pudo abrir la pestaña OCR: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }
