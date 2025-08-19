@@ -75,6 +75,18 @@ public class Producto {
         return 0.0;
     }
 
+    public double calcularPorcentajeGanancia() {
+        return calcularMargenGanancia();
+    }
+
+    public boolean esStockBajo(int limite) {
+        return cantidadStock <= limite;
+    }
+
+    public String getImagenUrl() {
+        return rutaImagen;
+    }
+
     public void activar() {
         this.estado = true;
     }

@@ -97,6 +97,60 @@ public class GestionarProductosController implements Initializable {
                 new SimpleStringProperty(cellData.getValue().isEstado() ? "Activo" : "Inactivo"));
         colCodigo.setCellValueFactory(new PropertyValueFactory<>("codigoBarras"));
 
+        // MEJORADO: Formato de celdas de precio con estilos consistentes
+        colPrecio.setCellFactory(tc -> new TableCell<Producto, BigDecimal>() {
+            @Override
+            protected void updateItem(BigDecimal precio, boolean empty) {
+                super.updateItem(precio, empty);
+                if (empty || precio == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    setText(String.format("$%.2f", precio));
+                    
+                    // Mantener colores de texto apropiados
+                    if (getTableRow() != null && getTableRow().isSelected()) {
+                        setStyle("-fx-text-fill: #1976D2; -fx-font-weight: bold;");
+                    } else {
+                        setStyle("-fx-text-fill: #2E7D32; -fx-font-weight: bold;");
+                    }
+                }
+            }
+        });
+
+        // MEJORADO: Formato de celda de stock con colores mejorados
+        colStock.setCellFactory(tc -> new TableCell<Producto, Integer>() {
+            @Override
+            protected void updateItem(Integer stock, boolean empty) {
+                super.updateItem(stock, empty);
+                if (empty || stock == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    setText(stock.toString());
+                    
+                    // Aplicar estilos según stock y selección
+                    if (getTableRow() != null && getTableRow().isSelected()) {
+                        if (stock == 0) {
+                            setStyle("-fx-background-color: rgba(244, 67, 54, 0.2); -fx-text-fill: #C62828; -fx-font-weight: bold;");
+                        } else if (stock <= 5) {
+                            setStyle("-fx-background-color: rgba(255, 152, 0, 0.2); -fx-text-fill: #EF6C00; -fx-font-weight: bold;");
+                        } else {
+                            setStyle("-fx-text-fill: #1976D2; -fx-font-weight: bold;");
+                        }
+                    } else {
+                        if (stock == 0) {
+                            setStyle("-fx-background-color: #ffebee; -fx-text-fill: #c62828; -fx-font-weight: bold;");
+                        } else if (stock <= 5) {
+                            setStyle("-fx-background-color: #fff3e0; -fx-text-fill: #ef6c00; -fx-font-weight: bold;");
+                        } else {
+                            setStyle("-fx-text-fill: #4CAF50; -fx-font-weight: bold;");
+                        }
+                    }
+                }
+            }
+        });
+
         // Configurar selección
         tableProductos.getSelectionModel().selectedItemProperty().addListener(
                 (obs, oldSelection, newSelection) -> {
@@ -107,6 +161,16 @@ public class GestionarProductosController implements Initializable {
                 });
 
         tableProductos.setItems(productosData);
+        
+        // NUEVO: Configurar estilo de selección de la tabla
+        tableProductos.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
+        
+        // Agregar listener para mantener estilos consistentes
+        tableProductos.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+            if (oldSelection != null) {
+                tableProductos.refresh(); // Refrescar para actualizar estilos
+            }
+        });
     }
 
     private void configurarFormulario() {
