@@ -7,6 +7,7 @@ import com.pos.puntoventaocr.models.Venta;
 import com.pos.puntoventaocr.models.DetalleVenta;
 import com.pos.puntoventaocr.utils.AlertUtils;
 import com.pos.puntoventaocr.utils.SessionManager;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -253,17 +254,26 @@ public class NuevaVentaController implements Initializable {
                 try {
                     int nuevaCantidad = Integer.parseInt(cantidadStr);
                     if (nuevaCantidad > 0) {
-                        // Verificar stock disponible
-                        if (nuevaCantidad <= detalleSeleccionado.getProducto().getCantidadStock()) {
-                            detalleSeleccionado.setCantidad(nuevaCantidad);
-                            tableCarrito.refresh();
-                            actualizarTotales();
-                            sessionManager.registrarActividad("Cantidad modificada: " +
-                                    detalleSeleccionado.getProducto().getNombre() + " x" + nuevaCantidad);
-                        } else {
-                            AlertUtils.mostrarError("Stock Insuficiente",
-                                    "Stock disponible: " + detalleSeleccionado.getProducto().getCantidadStock());
+                        int cantidadActual = detalleSeleccionado.getCantidad();
+                        
+                        // Solo validar si se está AUMENTANDO la cantidad
+                        if (nuevaCantidad > cantidadActual) {
+                            int cantidadAdicional = nuevaCantidad - cantidadActual;
+                            if (!detalleSeleccionado.getProducto().hayStock(cantidadAdicional)) {
+                                AlertUtils.mostrarError("Stock Insuficiente",
+                                        "No hay suficiente stock para agregar " + cantidadAdicional + " unidades más.\n" +
+                                        "Stock disponible: " + detalleSeleccionado.getProducto().getCantidadStock());
+                                return;
+                            }
                         }
+                        
+                        // Proceder con la actualización
+                        detalleSeleccionado.setCantidad(nuevaCantidad);
+                        detalleSeleccionado.calcularSubtotal();
+                        tableCarrito.refresh();
+                        actualizarTotales();
+                        sessionManager.registrarActividad("Cantidad modificada: " +
+                                detalleSeleccionado.getProducto().getNombre() + " x" + nuevaCantidad);
                     } else {
                         AlertUtils.mostrarError("Cantidad Inválida", "La cantidad debe ser mayor a 0");
                     }
@@ -286,11 +296,21 @@ public class NuevaVentaController implements Initializable {
 
                 // Procesar venta
                 if (ventaDAO.crear(ventaActual)) {
-                    // Actualizar stock de productos
+                    // Actualizar stock de productos - obtener stock ACTUAL de BD antes de descontar
                     for (DetalleVenta detalle : ventaActual.getDetalles()) {
                         Producto producto = detalle.getProducto();
-                        int nuevoStock = producto.getCantidadStock() - detalle.getCantidad();
-                        productoDAO.actualizarStock(producto.getIdProducto(), nuevoStock);
+                        // Obtener stock ACTUAL de BD, no del objeto en memoria
+                        Producto productoActual = productoDAO.buscarPorId(producto.getIdProducto());
+                        if (productoActual != null) {
+                            int nuevoStock = productoActual.getCantidadStock() - detalle.getCantidad();
+                            productoDAO.actualizarStock(producto.getIdProducto(), nuevoStock);
+                            
+                            // Auto-deshabilitar si queda sin stock
+                            if (nuevoStock == 0) {
+                                producto.setEstado(false);
+                                productoDAO.actualizar(producto);
+                            }
+                        }
                     }
 
                     AlertUtils.mostrarExito("Venta Procesada",
@@ -337,10 +357,12 @@ public class NuevaVentaController implements Initializable {
                 "Funcionalidad de impresión implementada\n" +
                         "Ticket enviado a impresora predeterminada");
 
-        // Después de imprimir, ofrecer nueva venta
-        if (AlertUtils.mostrarConfirmacion("Nueva Venta", "¿Desea realizar una nueva venta?")) {
+        // Limpiar automáticamente después de PDF
+        Platform.runLater(() -> {
             reiniciarVenta();
-        }
+            AlertUtils.mostrarInformacion("Venta Finalizada", 
+                    "Se ha iniciado una nueva venta automáticamente.");
+        });
     }
 
     // === MÉTODOS AUXILIARES ===
