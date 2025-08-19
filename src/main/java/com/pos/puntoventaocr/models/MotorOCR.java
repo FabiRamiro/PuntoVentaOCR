@@ -3,6 +3,7 @@ package com.pos.puntoventaocr.models;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -84,46 +85,93 @@ public class MotorOCR {
     }
 
     public Map<String, Object> detectarCampos(String textoExtraido) {
-        Map<String, Object> camposDetectados = new HashMap<>();
-
         if (textoExtraido == null || textoExtraido.trim().isEmpty()) {
-            return camposDetectados;
+            return new HashMap<>();
         }
 
-        // Detectar banco
-        String banco = detectarBanco(textoExtraido);
-        if (banco != null) {
-            camposDetectados.put("bancoEmisor", banco);
+        // Usar el nuevo sistema de procesamiento con estrategia "default"
+        Map<String, Object> datosExtraidos = procesarTextoExtraido(textoExtraido, "default");
+        
+        // Mapear los datos al formato esperado por el código existente
+        Map<String, Object> camposDetectados = new HashMap<>();
+        
+        // Mapear campos con nombres compatibles
+        if (datosExtraidos.containsKey("banco")) {
+            camposDetectados.put("bancoEmisor", datosExtraidos.get("banco"));
         }
-
-        // Detectar monto
-        BigDecimal monto = detectarMonto(textoExtraido);
-        if (monto != null) {
-            camposDetectados.put("montoDetectado", monto);
+        
+        if (datosExtraidos.containsKey("monto")) {
+            try {
+                String montoStr = datosExtraidos.get("monto").toString();
+                BigDecimal monto = new BigDecimal(montoStr);
+                camposDetectados.put("montoDetectado", monto);
+            } catch (NumberFormatException e) {
+                // Si hay error, usar el método original como fallback
+                BigDecimal monto = detectarMonto(textoExtraido);
+                if (monto != null) {
+                    camposDetectados.put("montoDetectado", monto);
+                }
+            }
         }
-
-        // Detectar fecha
-        LocalDateTime fecha = detectarFecha(textoExtraido);
-        if (fecha != null) {
-            camposDetectados.put("fechaTransferencia", fecha);
+        
+        if (datosExtraidos.containsKey("fecha")) {
+            try {
+                String fechaStr = datosExtraidos.get("fecha").toString();
+                LocalDateTime fecha = LocalDateTime.parse(fechaStr);
+                camposDetectados.put("fechaTransferencia", fecha);
+            } catch (Exception e) {
+                // Si hay error, usar el método original como fallback
+                LocalDateTime fecha = detectarFecha(textoExtraido);
+                if (fecha != null) {
+                    camposDetectados.put("fechaTransferencia", fecha);
+                }
+            }
         }
-
-        // Detectar referencia
-        String referencia = detectarReferencia(textoExtraido);
-        if (referencia != null) {
-            camposDetectados.put("referenciaOperacion", referencia);
+        
+        if (datosExtraidos.containsKey("referencia")) {
+            camposDetectados.put("referenciaOperacion", datosExtraidos.get("referencia"));
         }
-
-        // Detectar cuenta remitente
-        String cuentaRemitente = detectarCuentaRemitente(textoExtraido);
-        if (cuentaRemitente != null) {
-            camposDetectados.put("cuentaRemitente", cuentaRemitente);
+        
+        if (datosExtraidos.containsKey("cuenta")) {
+            camposDetectados.put("cuentaRemitente", datosExtraidos.get("cuenta"));
         }
+        
+        if (datosExtraidos.containsKey("beneficiario")) {
+            camposDetectados.put("nombreBeneficiario", datosExtraidos.get("beneficiario"));
+        }
+        
+        // Si no se extrajo nada con el nuevo sistema, usar el sistema original como fallback
+        if (camposDetectados.isEmpty()) {
+            // Fallback al sistema original
+            String banco = detectarBanco(textoExtraido);
+            if (banco != null) {
+                camposDetectados.put("bancoEmisor", banco);
+            }
 
-        // Detectar beneficiario
-        String beneficiario = detectarBeneficiario(textoExtraido);
-        if (beneficiario != null) {
-            camposDetectados.put("nombreBeneficiario", beneficiario);
+            BigDecimal monto = detectarMonto(textoExtraido);
+            if (monto != null) {
+                camposDetectados.put("montoDetectado", monto);
+            }
+
+            LocalDateTime fecha = detectarFecha(textoExtraido);
+            if (fecha != null) {
+                camposDetectados.put("fechaTransferencia", fecha);
+            }
+
+            String referencia = detectarReferencia(textoExtraido);
+            if (referencia != null) {
+                camposDetectados.put("referenciaOperacion", referencia);
+            }
+
+            String cuentaRemitente = detectarCuentaRemitente(textoExtraido);
+            if (cuentaRemitente != null) {
+                camposDetectados.put("cuentaRemitente", cuentaRemitente);
+            }
+
+            String beneficiario = detectarBeneficiario(textoExtraido);
+            if (beneficiario != null) {
+                camposDetectados.put("nombreBeneficiario", beneficiario);
+            }
         }
 
         return camposDetectados;
@@ -298,6 +346,292 @@ public class MotorOCR {
             comprobante.setEstadoValidacion(ComprobanteOCR.EstadoOCR.ERROR_PROCESAMIENTO);
             comprobante.setObservaciones("Error técnico: " + e.getMessage());
             return comprobante;
+        }
+    }
+
+    /**
+     * Detecta el tipo de banco basado en el texto extraído
+     */
+    private String detectarTipoBanco(String texto) {
+        String textoUpper = texto.toUpperCase();
+        
+        if (textoUpper.contains("BBVA")) {
+            return "BBVA";
+        } else if (textoUpper.contains("NU ") || textoUpper.contains("NUBANK")) {
+            return "NU";
+        } else if (textoUpper.contains("BANAMEX")) {
+            return "BANAMEX";
+        } else if (textoUpper.contains("SANTANDER")) {
+            return "SANTANDER";
+        } else if (textoUpper.contains("HSBC")) {
+            return "HSBC";
+        } else if (textoUpper.contains("BANORTE")) {
+            return "BANORTE";
+        } else if (textoUpper.contains("SCOTIABANK")) {
+            return "SCOTIABANK";
+        } else if (textoUpper.contains("INBURSA")) {
+            return "INBURSA";
+        }
+        
+        return "GENERICO";
+    }
+
+    /**
+     * Procesa el texto extraído usando detección de banco y enrutamiento
+     */
+    private Map<String, Object> procesarTextoExtraido(String textoCompleto, String estrategia) {
+        Map<String, Object> datosExtraidos = new HashMap<>();
+        datosExtraidos.put("texto_completo", textoCompleto);
+        datosExtraidos.put("estrategia_usada", estrategia);
+
+        // Detectar tipo de banco
+        String tipoBanco = detectarTipoBanco(textoCompleto);
+        datosExtraidos.put("tipo_banco_detectado", tipoBanco);
+
+        // Procesar según el banco detectado
+        Map<String, Object> datosEspecificos;
+        switch (tipoBanco) {
+            case "BBVA":
+                datosEspecificos = procesarComprobanteBBVA(textoCompleto);
+                break;
+            case "NU":
+                datosEspecificos = procesarComprobanteNU(textoCompleto);
+                break;
+            default:
+                datosEspecificos = procesarComprobanteGenerico(textoCompleto);
+                break;
+        }
+        
+        // Validar datos antes de combinar
+        if (!validarDatosExtraidos(datosEspecificos)) {
+            System.out.println("⚠️ Advertencia: Datos extraídos insuficientes para " + tipoBanco);
+        }
+        
+        // Combinar datos
+        datosExtraidos.putAll(datosEspecificos);
+        
+        // Agregar información de debug si está habilitada
+        agregarInfoDebug(datosExtraidos, tipoBanco, textoCompleto);
+        
+        // Calcular confianza mejorada
+        double confianza = calcularConfianzaMejorada(textoCompleto, tipoBanco, datosEspecificos);
+        datosExtraidos.put("confianza", confianza);
+
+        return datosExtraidos;
+    }
+
+    /**
+     * Procesa comprobantes de BBVA - implementación básica para ejemplo
+     */
+    private Map<String, Object> procesarComprobanteBBVA(String texto) {
+        // Por ahora, usar el procesamiento genérico 
+        // En el futuro se puede especializar para BBVA
+        return procesarComprobanteGenerico(texto);
+    }
+
+    /**
+     * Procesa comprobantes de NU - implementación básica para ejemplo
+     */
+    private Map<String, Object> procesarComprobanteNU(String texto) {
+        // Por ahora, usar el procesamiento genérico
+        // En el futuro se puede especializar para NU
+        return procesarComprobanteGenerico(texto);
+    }
+
+    /**
+     * Procesa comprobantes genéricos cuando no se detecta un banco específico
+     * Utiliza los patrones originales más mejorados
+     */
+    private Map<String, Object> procesarComprobanteGenerico(String texto) {
+        Map<String, Object> datos = new HashMap<>();
+        String textoLimpio = limpiarTexto(texto);
+        
+        // Extraer banco usando el método original mejorado
+        String banco = detectarBanco(textoLimpio.toUpperCase());
+        if (banco != null) {
+            datos.put("banco", banco);
+        }
+
+        // Extraer monto usando patrón mejorado
+        BigDecimal monto = extraerMontoMejorado(textoLimpio);
+        if (monto != null) {
+            datos.put("monto", monto.toString());
+        }
+
+        // Extraer fecha usando patrón original
+        LocalDateTime fecha = detectarFecha(textoLimpio.toUpperCase());
+        if (fecha != null) {
+            datos.put("fecha", fecha.toString());
+        }
+
+        // Extraer referencia usando patrón original
+        String referencia = detectarReferencia(textoLimpio.toUpperCase());
+        if (referencia != null) {
+            datos.put("referencia", referencia);
+        }
+
+        // Extraer cuenta usando patrón original
+        String cuenta = detectarCuentaRemitente(textoLimpio.toUpperCase());
+        if (cuenta != null) {
+            datos.put("cuenta", cuenta);
+        }
+
+        // Extraer beneficiario usando patrón original
+        String beneficiario = detectarBeneficiario(textoLimpio.toUpperCase());
+        if (beneficiario != null) {
+            datos.put("beneficiario", beneficiario);
+        }
+
+        return datos;
+    }
+
+    /**
+     * Patrón de monto mejorado que combina múltiples variaciones
+     */
+    private BigDecimal extraerMontoMejorado(String texto) {
+        // Patrones múltiples para detectar montos
+        Pattern[] patronesMontos = {
+            // Patrón original
+            Pattern.compile("(?:MONTO|IMPORTE|CANTIDAD|TOTAL)[^\\d]*\\$?([0-9,]+(?:\\.[0-9]{2})?)|\\$([0-9,]+(?:\\.[0-9]{2})?)"),
+            // Patrón para montos con peso mexicano
+            Pattern.compile("\\$\\s*([0-9,]+(?:\\.[0-9]{2})?)"),
+            // Patrón para números después de palabras clave
+            Pattern.compile("(?:TRANSFERENCIA|DEPOSITO|RETIRO|PAGO).*?\\$?([0-9,]+(?:\\.[0-9]{2})?)"),
+            // Patrón para formato numérico simple
+            Pattern.compile("([0-9]{1,3}(?:,[0-9]{3})*(?:\\.[0-9]{2})?)"),
+            // Patrón específico para "Importe transferido"
+            Pattern.compile("(?:Importe\\s+transferido|IMPORTE\\s+TRANSFERIDO)\\s*\\$?([0-9,]+(?:\\.[0-9]{2})?)"),
+            // Patrón para "Monto" seguido de cantidad
+            Pattern.compile("(?:Monto|MONTO)\\s*\\$?([0-9,]+(?:\\.[0-9]{2})?)"),
+        };
+        
+        BigDecimal montoMayor = null;
+        
+        for (Pattern patron : patronesMontos) {
+            java.util.regex.Matcher matcher = patron.matcher(texto);
+            while (matcher.find()) {
+                // Intentar con cada grupo capturado
+                for (int i = 1; i <= matcher.groupCount(); i++) {
+                    String montoStr = matcher.group(i);
+                    if (montoStr != null && !montoStr.trim().isEmpty()) {
+                        try {
+                            montoStr = montoStr.replace(",", "").replace(" ", "").trim();
+                            BigDecimal monto = new BigDecimal(montoStr);
+                            
+                            // Validar que sea un monto razonable (entre $1 y $1,000,000)
+                            if (monto.compareTo(BigDecimal.ONE) >= 0 && 
+                                monto.compareTo(BigDecimal.valueOf(1000000)) <= 0) {
+                                
+                                if (montoMayor == null || monto.compareTo(montoMayor) > 0) {
+                                    montoMayor = monto;
+                                }
+                            }
+                        } catch (NumberFormatException e) {
+                            // Continuar con siguiente coincidencia
+                        }
+                    }
+                }
+            }
+        }
+        
+        return montoMayor;
+    }
+
+    /**
+     * Método para limpiar texto mejorado
+     */
+    private String limpiarTexto(String texto) {
+        return texto
+                .replaceAll("\\s+", " ")  // Múltiples espacios a uno
+                .replaceAll("[^\\w\\s$.,/:-áéíóúñÁÉÍÓÚÑüÜ()]", " ")  // Eliminar caracteres especiales, incluir ü
+                .replaceAll("\\b\\d{1,2}\\s*[:]\\s*\\d{2}\\b", " ")  // Limpiar horas que interfieren
+                .trim();
+    }
+
+    /**
+     * Valida que los datos extraídos tengan sentido
+     */
+    private boolean validarDatosExtraidos(Map<String, Object> datos) {
+        // Validar que al menos tengamos monto o referencia
+        boolean tieneMonto = datos.containsKey("monto") && 
+                            datos.get("monto") != null && 
+                            !datos.get("monto").toString().trim().isEmpty();
+                            
+        boolean tieneReferencia = datos.containsKey("referencia") && 
+                                 datos.get("referencia") != null && 
+                                 !datos.get("referencia").toString().trim().isEmpty();
+        
+        return tieneMonto || tieneReferencia;
+    }
+
+    /**
+     * Agrega información de debugging para desarrollo
+     */
+    private void agregarInfoDebug(Map<String, Object> datos, String tipoBanco, String texto) {
+        if (Boolean.getBoolean("ocr.debug.enabled")) {
+            datos.put("debug_tipo_banco", tipoBanco);
+            datos.put("debug_longitud_texto", texto.length());
+            datos.put("debug_contiene_peso", texto.contains("$"));
+            datos.put("debug_contiene_spei", texto.toUpperCase().contains("SPEI"));
+            datos.put("debug_timestamp", System.currentTimeMillis());
+        }
+    }
+
+    /**
+     * Calcula la confianza mejorada basada en el texto y datos extraídos
+     */
+    private double calcularConfianzaMejorada(String textoCompleto, String tipoBanco, Map<String, Object> datosEspecificos) {
+        double confianzaBase = obtenerConfianza();
+        
+        // Ajustar confianza basada en datos extraídos
+        int puntaje = 0;
+        int maxPuntaje = 0;
+        
+        // Verificar campos principales
+        if (datosEspecificos.containsKey("monto") && datosEspecificos.get("monto") != null) {
+            puntaje += 30;
+        }
+        maxPuntaje += 30;
+        
+        if (datosEspecificos.containsKey("referencia") && datosEspecificos.get("referencia") != null) {
+            puntaje += 25;
+        }
+        maxPuntaje += 25;
+        
+        if (datosEspecificos.containsKey("banco") && datosEspecificos.get("banco") != null) {
+            puntaje += 20;
+        }
+        maxPuntaje += 20;
+        
+        if (datosEspecificos.containsKey("fecha") && datosEspecificos.get("fecha") != null) {
+            puntaje += 15;
+        }
+        maxPuntaje += 15;
+        
+        if (datosEspecificos.containsKey("cuenta") && datosEspecificos.get("cuenta") != null) {
+            puntaje += 10;
+        }
+        maxPuntaje += 10;
+        
+        double confianzaDatos = maxPuntaje > 0 ? (double) puntaje / maxPuntaje : 0.0;
+        
+        // Combinar confianza base con confianza de datos extraídos
+        return (confianzaBase + confianzaDatos) / 2.0;
+    }
+
+    /**
+     * Activa modo debug para desarrollo
+     * Agregar esta propiedad del sistema: -Docr.debug.enabled=true
+     */
+    private void logDebugInfo(String tipoBanco, Map<String, Object> datos, String texto) {
+        if (Boolean.getBoolean("ocr.debug.enabled")) {
+            System.out.println("=== DEBUG OCR ===");
+            System.out.println("Banco detectado: " + tipoBanco);
+            System.out.println("Datos extraídos: " + datos.size() + " campos");
+            System.out.println("Confianza: " + datos.get("confianza") + "%");
+            System.out.println("Texto (primeros 100 chars): " + 
+                              (texto.length() > 100 ? texto.substring(0, 100) + "..." : texto));
+            System.out.println("================");
         }
     }
 
