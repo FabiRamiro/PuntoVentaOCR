@@ -18,11 +18,22 @@ public class MotorOCR {
     private int precision;
     private List<String> formatosPermitidos;
 
-    // Patrones para extraer datos
-    private static final Pattern PATRON_MONTO = Pattern.compile("\\$?([0-9,]+\\.?[0-9]*)");
+    // Patrones mejorados para extraer datos
+    private static final Pattern PATRON_MONTO = Pattern.compile("(?:MONTO|TOTAL|IMPORTE|CANTIDAD)[\\s:]*\\$?([0-9,]+\\.?[0-9]*)");
+    private static final Pattern PATRON_MONTO_SIMPLE = Pattern.compile("\\$([0-9,]+\\.?[0-9]*)");
     private static final Pattern PATRON_FECHA = Pattern.compile("(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4})");
-    private static final Pattern PATRON_REFERENCIA = Pattern.compile("([A-Z0-9]{8,20})");
-    private static final Pattern PATRON_BANCO = Pattern.compile("(BBVA|BANAMEX|SANTANDER|HSBC|BANORTE|SCOTIABANK|INBURSA)");
+    private static final Pattern PATRON_REFERENCIA = Pattern.compile("(?:REF|REFERENCIA|FOLIO)[\\s:]*([A-Z0-9]{6,20})");
+    private static final Pattern PATRON_REFERENCIA_SIMPLE = Pattern.compile("([A-Z0-9]{8,20})");
+    private static final Pattern PATRON_BANCO = Pattern.compile("(BBVA|BANAMEX|SANTANDER|HSBC|BANORTE|SCOTIABANK|INBURSA|NU)");
+    
+    // Patrones específicos para BBVA
+    private static final Pattern PATRON_BBVA_FOLIO = Pattern.compile("FOLIO[\\s:]*([0-9]{6,12})");
+    private static final Pattern PATRON_BBVA_MONTO = Pattern.compile("TRANSFERENCIA[\\s\\S]*?\\$([0-9,]+\\.?[0-9]*)");
+    
+    // Patrones específicos para Nu México
+    private static final Pattern PATRON_NU_REFERENCIA = Pattern.compile("(?:Clave|ID)[\\s:]*([A-Z0-9]{6,15})");
+    private static final Pattern PATRON_NU_MONTO = Pattern.compile("(?:Enviaste|Pagaste)[\\s\\S]*?\\$([0-9,]+\\.?[0-9]*)");
+    private static final Pattern PATRON_NU_BENEFICIARIO = Pattern.compile("(?:Para|A)[\\s:]*([A-ZÁÉÍÓÚ\\s]{3,50})");
 
     // Constructor privado para Singleton
     private MotorOCR() {
@@ -90,40 +101,23 @@ public class MotorOCR {
             return camposDetectados;
         }
 
-        // Detectar banco
+        // Detectar banco primero
         String banco = detectarBanco(textoExtraido);
         if (banco != null) {
             camposDetectados.put("bancoEmisor", banco);
-        }
-
-        // Detectar monto
-        BigDecimal monto = detectarMonto(textoExtraido);
-        if (monto != null) {
-            camposDetectados.put("montoDetectado", monto);
-        }
-
-        // Detectar fecha
-        LocalDateTime fecha = detectarFecha(textoExtraido);
-        if (fecha != null) {
-            camposDetectados.put("fechaTransferencia", fecha);
-        }
-
-        // Detectar referencia
-        String referencia = detectarReferencia(textoExtraido);
-        if (referencia != null) {
-            camposDetectados.put("referenciaOperacion", referencia);
-        }
-
-        // Detectar cuenta remitente
-        String cuentaRemitente = detectarCuentaRemitente(textoExtraido);
-        if (cuentaRemitente != null) {
-            camposDetectados.put("cuentaRemitente", cuentaRemitente);
-        }
-
-        // Detectar beneficiario
-        String beneficiario = detectarBeneficiario(textoExtraido);
-        if (beneficiario != null) {
-            camposDetectados.put("nombreBeneficiario", beneficiario);
+            
+            // Procesar según el banco específico
+            if ("BBVA".equals(banco)) {
+                procesarComprobanteBBVA(textoExtraido, camposDetectados);
+            } else if ("NU".equals(banco)) {
+                procesarComprobanteNU(textoExtraido, camposDetectados);
+            } else {
+                // Procesamiento genérico para otros bancos
+                procesarComprobanteGenerico(textoExtraido, camposDetectados);
+            }
+        } else {
+            // Si no detecta banco, usar procesamiento genérico
+            procesarComprobanteGenerico(textoExtraido, camposDetectados);
         }
 
         return camposDetectados;
@@ -132,26 +126,59 @@ public class MotorOCR {
     private String detectarBanco(String texto) {
         Matcher matcher = PATRON_BANCO.matcher(texto.toUpperCase());
         if (matcher.find()) {
-            return matcher.group(1);
+            String banco = matcher.group(1);
+            // Normalizar nombres de bancos
+            if ("NU".equals(banco)) {
+                return "NU MEXICO";
+            }
+            return banco;
         }
+        
+        // Detectar Nu México con patrones específicos
+        if (texto.toUpperCase().contains("NU MÉXICO") || 
+            texto.toUpperCase().contains("NU MEXICO") ||
+            texto.toUpperCase().contains("NUBANK")) {
+            return "NU MEXICO";
+        }
+        
         return null;
     }
 
     private BigDecimal detectarMonto(String texto) {
-        Matcher matcher = PATRON_MONTO.matcher(texto);
-        while (matcher.find()) {
+        BigDecimal monto = null;
+        
+        // Intentar patrón con contexto primero
+        Matcher matcher = PATRON_MONTO.matcher(texto.toUpperCase());
+        if (matcher.find()) {
             try {
                 String montoStr = matcher.group(1).replace(",", "");
-                BigDecimal monto = new BigDecimal(montoStr);
-                // Filtrar montos muy pequeños o muy grandes
-                if (monto.compareTo(BigDecimal.ONE) > 0 && monto.compareTo(new BigDecimal("1000000")) < 0) {
-                    return monto;
-                }
+                monto = new BigDecimal(montoStr);
             } catch (NumberFormatException e) {
-                continue;
+                // Continuar con siguiente patrón
             }
         }
-        return null;
+        
+        // Si no funciona, intentar patrón simple
+        if (monto == null) {
+            matcher = PATRON_MONTO_SIMPLE.matcher(texto);
+            while (matcher.find()) {
+                try {
+                    String montoStr = matcher.group(1).replace(",", "");
+                    BigDecimal montoCandidate = new BigDecimal(montoStr);
+                    // Filtrar montos razonables
+                    if (montoCandidate.compareTo(BigDecimal.ONE) > 0 && 
+                        montoCandidate.compareTo(new BigDecimal("1000000")) < 0) {
+                        if (monto == null || montoCandidate.compareTo(monto) > 0) {
+                            monto = montoCandidate;
+                        }
+                    }
+                } catch (NumberFormatException e) {
+                    continue;
+                }
+            }
+        }
+        
+        return monto;
     }
 
     private LocalDateTime detectarFecha(String texto) {
@@ -179,10 +206,18 @@ public class MotorOCR {
     }
 
     private String detectarReferencia(String texto) {
-        Matcher matcher = PATRON_REFERENCIA.matcher(texto);
+        // Intentar patrón con contexto primero
+        Matcher matcher = PATRON_REFERENCIA.matcher(texto.toUpperCase());
         if (matcher.find()) {
             return matcher.group(1);
         }
+        
+        // Si no funciona, intentar patrón simple
+        matcher = PATRON_REFERENCIA_SIMPLE.matcher(texto.toUpperCase());
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        
         return null;
     }
 
@@ -208,6 +243,124 @@ public class MotorOCR {
             }
         }
         return null;
+    }
+
+    // Procesamiento específico para BBVA
+    private void procesarComprobanteBBVA(String texto, Map<String, Object> campos) {
+        // Buscar folio específico de BBVA
+        Matcher folioMatcher = PATRON_BBVA_FOLIO.matcher(texto.toUpperCase());
+        if (folioMatcher.find()) {
+            campos.put("referenciaOperacion", folioMatcher.group(1));
+        }
+        
+        // Buscar monto específico de BBVA
+        Matcher montoMatcher = PATRON_BBVA_MONTO.matcher(texto.toUpperCase());
+        if (montoMatcher.find()) {
+            try {
+                String montoStr = montoMatcher.group(1).replace(",", "");
+                BigDecimal monto = new BigDecimal(montoStr);
+                campos.put("montoDetectado", monto);
+            } catch (NumberFormatException e) {
+                // Usar detección genérica como fallback
+                BigDecimal monto = detectarMonto(texto);
+                if (monto != null) {
+                    campos.put("montoDetectado", monto);
+                }
+            }
+        } else {
+            // Usar detección genérica
+            BigDecimal monto = detectarMonto(texto);
+            if (monto != null) {
+                campos.put("montoDetectado", monto);
+            }
+        }
+        
+        // Aplicar detección genérica para el resto de campos
+        procesarCamposComunes(texto, campos);
+    }
+
+    // Procesamiento específico para Nu México
+    private void procesarComprobanteNU(String texto, Map<String, Object> campos) {
+        // Buscar referencia específica de Nu
+        Matcher refMatcher = PATRON_NU_REFERENCIA.matcher(texto);
+        if (refMatcher.find()) {
+            campos.put("referenciaOperacion", refMatcher.group(1));
+        }
+        
+        // Buscar monto específico de Nu
+        Matcher montoMatcher = PATRON_NU_MONTO.matcher(texto);
+        if (montoMatcher.find()) {
+            try {
+                String montoStr = montoMatcher.group(1).replace(",", "");
+                BigDecimal monto = new BigDecimal(montoStr);
+                campos.put("montoDetectado", monto);
+            } catch (NumberFormatException e) {
+                // Usar detección genérica como fallback
+                BigDecimal monto = detectarMonto(texto);
+                if (monto != null) {
+                    campos.put("montoDetectado", monto);
+                }
+            }
+        } else {
+            // Usar detección genérica
+            BigDecimal monto = detectarMonto(texto);
+            if (monto != null) {
+                campos.put("montoDetectado", monto);
+            }
+        }
+        
+        // Buscar beneficiario específico de Nu
+        Matcher beneficiarioMatcher = PATRON_NU_BENEFICIARIO.matcher(texto);
+        if (beneficiarioMatcher.find()) {
+            campos.put("nombreBeneficiario", beneficiarioMatcher.group(1).trim());
+        }
+        
+        // Aplicar detección genérica para el resto de campos
+        procesarCamposComunes(texto, campos);
+    }
+
+    // Procesamiento genérico para bancos sin patrones específicos
+    private void procesarComprobanteGenerico(String texto, Map<String, Object> campos) {
+        procesarCamposComunes(texto, campos);
+    }
+
+    // Procesamiento común para todos los tipos de comprobantes
+    private void procesarCamposComunes(String texto, Map<String, Object> campos) {
+        // Detectar monto si no se ha detectado
+        if (!campos.containsKey("montoDetectado")) {
+            BigDecimal monto = detectarMonto(texto);
+            if (monto != null) {
+                campos.put("montoDetectado", monto);
+            }
+        }
+
+        // Detectar fecha
+        LocalDateTime fecha = detectarFecha(texto);
+        if (fecha != null) {
+            campos.put("fechaTransferencia", fecha);
+        }
+
+        // Detectar referencia si no se ha detectado
+        if (!campos.containsKey("referenciaOperacion")) {
+            String referencia = detectarReferencia(texto);
+            if (referencia != null) {
+                campos.put("referenciaOperacion", referencia);
+            }
+        }
+
+        // Detectar cuenta remitente
+        String cuentaRemitente = detectarCuentaRemitente(texto);
+        if (cuentaRemitente != null) {
+            campos.put("cuentaRemitente", cuentaRemitente);
+        }
+
+        // Detectar beneficiario si no se ha detectado
+        if (!campos.containsKey("nombreBeneficiario")) {
+            String beneficiario = detectarBeneficiario(texto);
+            if (beneficiario != null) {
+                campos.put("nombreBeneficiario", beneficiario);
+            }
+        }
     }
 
     public BufferedImage mejorarImagen(String rutaImagen) throws Exception {
