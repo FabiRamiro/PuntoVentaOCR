@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<BorderPane fx:id="mainPane" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pos.puntoventaocr.controllers.PrincipalController">
+<BorderPane fx:id="mainPane" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pos.puntoventaocr.controllers.PrincipalController">
    <top>
       <VBox>
          <children>
@@ -89,6 +90,9 @@
                </items>
             </ToolBar>
          </children>
+         <opaqueInsets>
+            <Insets top="50.0" />
+         </opaqueInsets>
       </VBox>
    </top>
 
@@ -98,7 +102,7 @@
          <items>
             <Label fx:id="lblSesionInfo" text="[Información de sesión]" />
             <Region HBox.hgrow="ALWAYS" />
-            <Label text="Sistema POS v1.0" style="-fx-text-fill: #6c757d;" />
+            <Label style="-fx-text-fill: #6c757d;" text="Sistema POS v1.0" />
          </items>
       </ToolBar>
    </bottom>
