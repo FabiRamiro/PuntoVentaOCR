@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pos.puntoventaocr.controllers.ValidarOCRController">
+   <top>
+      <VBox spacing="10.0">
+         <children>
+            <Label text="Validación OCR de Comprobantes">
+               <font>
+                  <Font name="System Bold" size="16.0" />
+               </font>
+            </Label>
+            <Separator />
+            <!-- Filtros -->
+            <HBox spacing="10.0" alignment="CENTER_LEFT">
+               <children>
+                  <Label text="Estado:" />
+                  <ComboBox fx:id="cmbFiltroEstado" prefWidth="150.0" />
+                  <Label text="Referencia:" />
+                  <TextField fx:id="txtFiltroReferencia" prefWidth="200.0" />
+                  <Button fx:id="btnNuevoComprobante" mnemonicParsing="false" onAction="#handleNuevoComprobante" text="Nuevo Comprobante" />
+               </children>
+            </HBox>
+         </children>
+         <padding>
+            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+         </padding>
+      </VBox>
+   </top>
+   <center>
+      <HBox spacing="10.0">
+         <children>
+            <!-- Panel izquierdo: Tabla de comprobantes -->
+            <VBox spacing="10.0" HBox.hgrow="ALWAYS">
+               <children>
+                  <Label text="Comprobantes OCR">
+                     <font>
+                        <Font name="System Bold" size="12.0" />
+                     </font>
+                  </Label>
+                  <TableView fx:id="tableComprobantes" prefHeight="200.0">
+                     <columns>
+                        <TableColumn fx:id="colNumeroVenta" text="# Venta" prefWidth="80.0" />
+                        <TableColumn fx:id="colReferencia" text="Referencia" prefWidth="120.0" />
+                        <TableColumn fx:id="colMonto" text="Monto" prefWidth="100.0" />
+                        <TableColumn fx:id="colBanco" text="Banco" prefWidth="120.0" />
+                        <TableColumn fx:id="colEstado" text="Estado" prefWidth="100.0" />
+                        <TableColumn fx:id="colFecha" text="Fecha" prefWidth="130.0" />
+                     </columns>
+                  </TableView>
+               </children>
+            </VBox>
+            
+            <!-- Panel derecho: Detalles -->
+            <VBox spacing="10.0" minWidth="400.0" prefWidth="400.0">
+               <children>
+                  <Label text="Imagen del Comprobante">
+                     <font>
+                        <Font name="System Bold" size="12.0" />
+                     </font>
+                  </Label>
+                  <ImageView fx:id="imgComprobante" fitHeight="200.0" fitWidth="380.0" pickOnBounds="true" preserveRatio="true" />
+                  <HBox spacing="10.0">
+                     <children>
+                        <Button fx:id="btnCargarImagen" mnemonicParsing="false" onAction="#handleCargarImagen" text="Cargar Imagen" />
+                        <Button fx:id="btnProcesarOCR" disable="true" mnemonicParsing="false" onAction="#handleProcesarOCR" text="Procesar OCR" />
+                     </children>
+                  </HBox>
+                  
+                  <Label text="Datos del Comprobante">
+                     <font>
+                        <Font name="System Bold" size="12.0" />
+                     </font>
+                  </Label>
+                  
+                  <GridPane hgap="10.0" vgap="5.0">
+                     <columnConstraints>
+                        <ColumnConstraints hgrow="NEVER" minWidth="100.0" />
+                        <ColumnConstraints hgrow="ALWAYS" />
+                     </columnConstraints>
+                     <children>
+                        <Label text="Número Venta:" GridPane.rowIndex="0" />
+                        <TextField fx:id="txtNumeroVenta" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+                        
+                        <Label text="Banco Emisor:" GridPane.rowIndex="1" />
+                        <TextField fx:id="txtBancoEmisor" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                        
+                        <Label text="Cuenta:" GridPane.rowIndex="2" />
+                        <TextField fx:id="txtCuentaRemitente" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                        
+                        <Label text="Monto:" GridPane.rowIndex="3" />
+                        <TextField fx:id="txtMonto" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                        
+                        <Label text="Fecha:" GridPane.rowIndex="4" />
+                        <DatePicker fx:id="dpFechaTransferencia" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+                        
+                        <Label text="Referencia:" GridPane.rowIndex="5" />
+                        <TextField fx:id="txtReferencia" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+                        
+                        <Label text="Beneficiario:" GridPane.rowIndex="6" />
+                        <TextField fx:id="txtBeneficiario" GridPane.columnIndex="1" GridPane.rowIndex="6" />
+                     </children>
+                  </GridPane>
+                  
+                  <Label text="Observaciones:" />
+                  <TextArea fx:id="txtObservaciones" prefHeight="60.0" />
+                  
+                  <!-- Información de la venta -->
+                  <VBox spacing="5.0">
+                     <children>
+                        <Label text="Información de la Venta">
+                           <font>
+                              <Font name="System Bold" size="12.0" />
+                           </font>
+                        </Label>
+                        <HBox spacing="10.0">
+                           <children>
+                              <Label text="Total:" />
+                              <Label fx:id="lblTotalVenta" text="$0.00" />
+                           </children>
+                        </HBox>
+                        <HBox spacing="10.0">
+                           <children>
+                              <Label text="Fecha:" />
+                              <Label fx:id="lblFechaVenta" text="-" />
+                           </children>
+                        </HBox>
+                        <HBox spacing="10.0">
+                           <children>
+                              <Label text="Usuario:" />
+                              <Label fx:id="lblUsuarioVenta" text="-" />
+                           </children>
+                        </HBox>
+                        <HBox spacing="10.0">
+                           <children>
+                              <Label text="Estado:" />
+                              <Label fx:id="lblEstadoValidacion" text="-" />
+                           </children>
+                        </HBox>
+                     </children>
+                  </VBox>
+                  
+                  <HBox spacing="10.0">
+                     <children>
+                        <Button fx:id="btnValidar" mnemonicParsing="false" onAction="#handleValidar" text="Validar" />
+                        <Button fx:id="btnRechazar" mnemonicParsing="false" onAction="#handleRechazar" text="Rechazar" />
+                        <Button fx:id="btnGuardarCambios" mnemonicParsing="false" onAction="#handleGuardarCambios" text="Guardar Cambios" />
+                     </children>
+                  </HBox>
+               </children>
+            </VBox>
+         </children>
+         <padding>
+            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+         </padding>
+      </HBox>
+   </center>
+   <bottom>
+      <VBox spacing="5.0">
+         <children>
+            <Label text="Texto extraído:">
+               <font>
+                  <Font name="System Bold" size="12.0" />
+               </font>
+            </Label>
+            <TextArea fx:id="txtTextoExtraido" editable="false" prefHeight="120.0" wrapText="true" style="-fx-font-family: 'Courier New', monospace; -fx-font-size: 10px;" />
+         </children>
+         <padding>
+            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+         </padding>
+      </VBox>
+   </bottom>
+</BorderPane>

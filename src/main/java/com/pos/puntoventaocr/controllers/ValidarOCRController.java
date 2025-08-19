@@ -48,6 +48,7 @@ public class ValidarOCRController implements Initializable {
     @FXML private TextField txtReferencia;
     @FXML private TextField txtBeneficiario;
     @FXML private TextArea txtObservaciones;
+    @FXML private TextArea txtTextoExtraido;
 
     // Información de la venta
     @FXML private Label lblTotalVenta;
@@ -310,6 +311,16 @@ public class ValidarOCRController implements Initializable {
                         "Referencia: " + comprobanteSeleccionado.getReferenciaOperacion())) {
 
             try {
+                // IMPORTANTE: Actualizar datos del formulario antes de validar
+                actualizarComprobanteDesdeFormulario(comprobanteSeleccionado);
+                
+                // Primero actualizar el comprobante con los datos del formulario
+                if (!comprobanteDAO.actualizar(comprobanteSeleccionado)) {
+                    AlertUtils.mostrarError("Error", "No se pudieron guardar los datos del comprobante");
+                    return;
+                }
+                
+                // Luego aprobar
                 if (comprobanteDAO.aprobar(comprobanteSeleccionado.getIdComprobante(),
                         sessionManager.getUsuarioActual().getIdUsuario())) {
 
@@ -346,6 +357,16 @@ public class ValidarOCRController implements Initializable {
         }
 
         try {
+            // IMPORTANTE: Actualizar datos del formulario antes de rechazar
+            actualizarComprobanteDesdeFormulario(comprobanteSeleccionado);
+            
+            // Primero actualizar el comprobante con los datos del formulario
+            if (!comprobanteDAO.actualizar(comprobanteSeleccionado)) {
+                AlertUtils.mostrarError("Error", "No se pudieron guardar los datos del comprobante");
+                return;
+            }
+            
+            // Luego rechazar
             if (comprobanteDAO.rechazar(comprobanteSeleccionado.getIdComprobante(),
                     sessionManager.getUsuarioActual().getIdUsuario(), motivo)) {
 
@@ -434,6 +455,13 @@ public class ValidarOCRController implements Initializable {
         txtReferencia.setText(comprobante.getReferenciaOperacion());
         txtBeneficiario.setText(comprobante.getNombreBeneficiario());
         txtObservaciones.setText(comprobante.getObservaciones());
+        
+        // Mostrar texto extraído por OCR
+        if (comprobante.getDatosExtraidos() != null && !comprobante.getDatosExtraidos().trim().isEmpty()) {
+            txtTextoExtraido.setText(comprobante.getDatosExtraidos());
+        } else {
+            txtTextoExtraido.setText("No hay texto extraído disponible.");
+        }
 
         // Cargar información de la venta
         Venta venta = comprobante.getVenta();
@@ -529,6 +557,7 @@ public class ValidarOCRController implements Initializable {
         txtReferencia.clear();
         txtBeneficiario.clear();
         txtObservaciones.clear();
+        txtTextoExtraido.clear();
 
         lblTotalVenta.setText("$0.00");
         lblFechaVenta.setText("-");

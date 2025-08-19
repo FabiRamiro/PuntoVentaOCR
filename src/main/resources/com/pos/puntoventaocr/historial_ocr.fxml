@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pos.puntoventaocr.controllers.HistorialOCRController">
+   <top>
+      <VBox spacing="10.0">
+         <children>
+            <Label text="Historial de Procesamiento OCR">
+               <font>
+                  <Font name="System Bold" size="16.0" />
+               </font>
+            </Label>
+            <Separator />
+            
+            <!-- Filtros -->
+            <HBox spacing="10.0" alignment="CENTER_LEFT">
+               <children>
+                  <Label text="Fecha Inicio:" />
+                  <DatePicker fx:id="dateFechaInicio" prefWidth="150.0" />
+                  
+                  <Label text="Fecha Fin:" />
+                  <DatePicker fx:id="dateFechaFin" prefWidth="150.0" />
+                  
+                  <Label text="Estado:" />
+                  <ComboBox fx:id="cmbEstado" prefWidth="120.0" />
+                  
+                  <Label text="Referencia:" />
+                  <TextField fx:id="txtBuscarReferencia" prefWidth="150.0" promptText="Buscar por referencia..." />
+                  
+                  <Button fx:id="btnBuscar" mnemonicParsing="false" onAction="#handleBuscar" text="Buscar" />
+               </children>
+            </HBox>
+            
+            <!-- Estadísticas -->
+            <HBox spacing="20.0" alignment="CENTER_LEFT">
+               <children>
+                  <VBox alignment="CENTER" spacing="5.0">
+                     <children>
+                        <Label text="Total" style="-fx-font-weight: bold;" />
+                        <Label fx:id="lblTotalRegistros" text="0" style="-fx-font-size: 14px;" />
+                     </children>
+                  </VBox>
+                  <VBox alignment="CENTER" spacing="5.0">
+                     <children>
+                        <Label text="Validados" style="-fx-font-weight: bold; -fx-text-fill: green;" />
+                        <Label fx:id="lblValidados" text="0" style="-fx-font-size: 14px; -fx-text-fill: green;" />
+                     </children>
+                  </VBox>
+                  <VBox alignment="CENTER" spacing="5.0">
+                     <children>
+                        <Label text="Pendientes" style="-fx-font-weight: bold; -fx-text-fill: orange;" />
+                        <Label fx:id="lblPendientes" text="0" style="-fx-font-size: 14px; -fx-text-fill: orange;" />
+                     </children>
+                  </VBox>
+                  <VBox alignment="CENTER" spacing="5.0">
+                     <children>
+                        <Label text="Rechazados" style="-fx-font-weight: bold; -fx-text-fill: red;" />
+                        <Label fx:id="lblRechazados" text="0" style="-fx-font-size: 14px; -fx-text-fill: red;" />
+                     </children>
+                  </VBox>
+               </children>
+            </HBox>
+         </children>
+         <padding>
+            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+         </padding>
+      </VBox>
+   </top>
+   
+   <center>
+      <VBox spacing="10.0">
+         <children>
+            <TableView fx:id="tableHistorial" VBox.vgrow="ALWAYS">
+               <columns>
+                  <TableColumn fx:id="colId" text="ID" prefWidth="50.0" />
+                  <TableColumn fx:id="colFecha" text="Fecha" prefWidth="130.0" />
+                  <TableColumn fx:id="colBanco" text="Banco" prefWidth="120.0" />
+                  <TableColumn fx:id="colMonto" text="Monto" prefWidth="100.0" />
+                  <TableColumn fx:id="colReferencia" text="Referencia" prefWidth="150.0" />
+                  <TableColumn fx:id="colEstado" text="Estado" prefWidth="100.0" />
+                  <TableColumn fx:id="colProcesadoPor" text="Procesado Por" prefWidth="130.0" />
+               </columns>
+            </TableView>
+         </children>
+         <padding>
+            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+         </padding>
+      </VBox>
+   </center>
+   
+   <bottom>
+      <HBox spacing="10.0" alignment="CENTER_LEFT">
+         <children>
+            <Button fx:id="btnVerDetalles" mnemonicParsing="false" onAction="#handleVerDetalles" text="Ver Detalles" styleClass="btn-primary" />
+            <Button fx:id="btnVerImagen" mnemonicParsing="false" onAction="#handleVerImagen" text="Ver Imagen" styleClass="btn-secondary" />
+            <Button fx:id="btnEliminar" mnemonicParsing="false" onAction="#handleEliminar" text="Eliminar" styleClass="btn-danger" />
+            
+            <Separator orientation="VERTICAL" />
+            
+            <Button fx:id="btnExportarCSV" mnemonicParsing="false" onAction="#handleExportarCSV" text="Exportar CSV" styleClass="btn-info" />
+            <Button fx:id="btnExportarPDF" mnemonicParsing="false" onAction="#handleExportarPDF" text="Exportar PDF" styleClass="btn-success" />
+         </children>
+         <padding>
+            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+         </padding>
+      </HBox>
+   </bottom>
+</BorderPane>
