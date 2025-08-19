@@ -1,0 +1,298 @@
+/* =================== MEJORAS EN SELECCIÓN DE TABLAS =================== */
+
+.table-view {
+    -fx-background-color: white;
+    -fx-border-color: #E0E0E0;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+}
+
+.table-view .column-header {
+    -fx-background-color: #F5F5F5;
+    -fx-border-color: #E0E0E0;
+    -fx-font-weight: bold;
+    -fx-text-fill: #424242;
+}
+
+.table-view .column-header:hover {
+    -fx-background-color: #EEEEEE;
+}
+
+.table-row-cell {
+    -fx-background-color: white;
+    -fx-border-color: transparent;
+    -fx-text-fill: #333333;
+}
+
+.table-row-cell:odd {
+    -fx-background-color: #FAFAFA;
+    -fx-text-fill: #333333;
+}
+
+/* CORREGIDO: Selección de filas con texto visible */
+.table-row-cell:selected {
+    -fx-background-color: #E3F2FD;
+    -fx-text-fill: #1976D2;
+}
+
+.table-row-cell:selected .text {
+    -fx-fill: #1976D2;
+}
+
+/* CORREGIDO: Foco en filas seleccionadas */
+.table-row-cell:focused:selected {
+    -fx-background-color: #BBDEFB;
+    -fx-text-fill: #1565C0;
+}
+
+.table-row-cell:focused:selected .text {
+    -fx-fill: #1565C0;
+}
+
+/* Hover mejorado */
+.table-row-cell:hover {
+    -fx-background-color: #F0F8FF;
+    -fx-text-fill: #1976D2;
+}
+
+.table-row-cell:hover .text {
+    -fx-fill: #1976D2;
+}
+
+/* NUEVO: Celdas específicas con colores personalizados */
+.table-cell {
+    -fx-text-fill: inherit;
+}
+
+.table-row-cell:selected .table-cell {
+    -fx-text-fill: #1976D2;
+}
+
+.table-row-cell:focused:selected .table-cell {
+    -fx-text-fill: #1565C0;
+}
+
+/* =================== MEJORAS EN COMBOS Y LISTAS =================== */
+
+.combo-box {
+    -fx-background-radius: 5px;
+    -fx-border-radius: 5px;
+    -fx-border-color: #E0E0E0;
+    -fx-background-color: white;
+}
+
+.combo-box:focused {
+    -fx-border-color: #1976D2;
+    -fx-border-width: 2px;
+}
+
+.combo-box .list-cell {
+    -fx-text-fill: #333333;
+    -fx-background-color: white;
+}
+
+.combo-box .list-cell:selected {
+    -fx-background-color: #E3F2FD;
+    -fx-text-fill: #1976D2;
+}
+
+.combo-box .list-cell:hover {
+    -fx-background-color: #F0F8FF;
+    -fx-text-fill: #1976D2;
+}
+
+/* =================== MEJORAS EN CAMPOS DE TEXTO =================== */
+
+.text-field {
+    -fx-background-radius: 5px;
+    -fx-border-radius: 5px;
+    -fx-border-color: #E0E0E0;
+    -fx-background-color: white;
+    -fx-text-fill: #333333;
+}
+
+.text-field:focused {
+    -fx-border-color: #1976D2;
+    -fx-border-width: 2px;
+}
+
+.text-field:selected {
+    -fx-highlight-fill: #BBDEFB;
+    -fx-highlight-text-fill: #1565C0;
+}
+
+/* =================== PANEL DE DETALLES DE PRODUCTO =================== */
+
+.product-detail-panel {
+    -fx-background-color: white;
+    -fx-border-color: #E0E0E0;
+    -fx-border-width: 0 0 0 1px;
+    -fx-padding: 15px;
+}
+
+.detail-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #666666;
+    -fx-font-size: 12px;
+}
+
+.detail-value {
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+    -fx-font-size: 14px;
+}
+
+.detail-value.price {
+    -fx-text-fill: #2E7D32;
+    -fx-font-size: 16px;
+}
+
+.detail-value.stock {
+    -fx-font-size: 15px;
+}
+
+.detail-value.stock.low {
+    -fx-text-fill: #FF9800;
+}
+
+.detail-value.stock.out {
+    -fx-text-fill: #F44336;
+}
+
+.detail-value.stock.available {
+    -fx-text-fill: #4CAF50;
+}
+
+.detail-value.profit {
+    -fx-text-fill: #1976D2;
+    -fx-font-size: 15px;
+}
+
+/* MEJORADO: Panel de imagen de producto */
+.image-preview {
+    -fx-border-color: #E0E0E0;
+    -fx-border-width: 2px;
+    -fx-border-radius: 8px;
+    -fx-background-color: #FAFAFA;
+    -fx-background-radius: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 5, 0, 0, 2);
+}
+
+.image-preview:hover {
+    -fx-border-color: #1976D2;
+    -fx-effect: dropshadow(gaussian, rgba(25,118,210,0.3), 8, 0, 0, 3);
+}
+
+/* =================== LISTA DE PRODUCTOS EN VENTAS =================== */
+
+.list-view {
+    -fx-background-color: white;
+    -fx-border-color: #E0E0E0;
+    -fx-border-radius: 5px;
+}
+
+.list-cell {
+    -fx-background-color: white;
+    -fx-text-fill: #333333;
+    -fx-border-color: transparent;
+}
+
+.list-cell:odd {
+    -fx-background-color: #FAFAFA;
+}
+
+.list-cell:selected {
+    -fx-background-color: #E3F2FD;
+    -fx-text-fill: #1976D2;
+}
+
+.list-cell:focused:selected {
+    -fx-background-color: #BBDEFB;
+    -fx-text-fill: #1565C0;
+}
+
+.list-cell:hover {
+    -fx-background-color: #F0F8FF;
+    -fx-text-fill: #1976D2;
+}
+
+/* =================== SCROLLBARS MEJORADOS =================== */
+
+.scroll-bar {
+    -fx-background-color: #F5F5F5;
+    -fx-border-color: transparent;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: #BDBDBD;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: #9E9E9E;
+}
+
+.scroll-bar .thumb:pressed {
+    -fx-background-color: #757575;
+}
+
+.scroll-bar .track {
+    -fx-background-color: #F5F5F5;
+    -fx-border-color: transparent;
+    -fx-background-radius: 8px;
+}
+
+/* =================== MEJORAS EN TREE VIEW =================== */
+
+.tree-view {
+    -fx-background-color: white;
+    -fx-border-color: #E0E0E0;
+}
+
+.tree-cell {
+    -fx-background-color: white;
+    -fx-text-fill: #333333;
+}
+
+.tree-cell:selected {
+    -fx-background-color: #E3F2FD;
+    -fx-text-fill: #1976D2;
+}
+
+.tree-cell:focused:selected {
+    -fx-background-color: #BBDEFB;
+    -fx-text-fill: #1565C0;
+}
+
+/* =================== TOOLTIPS MEJORADOS =================== */
+
+.tooltip {
+    -fx-background-color: #333333;
+    -fx-text-fill: white;
+    -fx-background-radius: 6px;
+    -fx-font-size: 12px;
+    -fx-padding: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 8, 0, 0, 2);
+}
+
+/* =================== ESTADOS DE COMPONENTES =================== */
+
+.component-disabled {
+    -fx-opacity: 0.6;
+}
+
+.component-error {
+    -fx-border-color: #F44336;
+    -fx-border-width: 2px;
+}
+
+.component-success {
+    -fx-border-color: #4CAF50;
+    -fx-border-width: 2px;
+}
+
+.component-warning {
+    -fx-border-color: #FF9800;
+    -fx-border-width: 2px;
+}
