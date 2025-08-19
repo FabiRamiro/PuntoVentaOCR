@@ -329,6 +329,80 @@ public class ComprobanteOCRDAO {
         return false;
     }
 
+    // Eliminar comprobante OCR
+    public boolean eliminar(int idComprobante) {
+        String sql = "DELETE FROM comprobantes_ocr WHERE id_comprobante = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, idComprobante);
+            int filasAfectadas = pstmt.executeUpdate();
+
+            return filasAfectadas > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error al eliminar comprobante: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    // Buscar comprobantes con filtros
+    public List<ComprobanteOCR> buscarConFiltros(java.time.LocalDate fechaInicio, 
+                                                  java.time.LocalDate fechaFin, 
+                                                  EstadoOCR estadoFiltro) {
+        List<ComprobanteOCR> comprobantes = new ArrayList<>();
+        StringBuilder sql = new StringBuilder(
+                "SELECT co.*, v.numero_venta, v.total as venta_total, " +
+                "u.nombre_usuario, u.nombre as usuario_nombre, u.apellidos as usuario_apellidos " +
+                "FROM comprobantes_ocr co " +
+                "INNER JOIN ventas v ON co.id_venta = v.id_venta " +
+                "LEFT JOIN usuarios u ON co.usuario_validador = u.id_usuario " +
+                "WHERE 1=1 ");
+
+        if (fechaInicio != null) {
+            sql.append("AND DATE(co.fecha_procesamiento) >= ? ");
+        }
+        if (fechaFin != null) {
+            sql.append("AND DATE(co.fecha_procesamiento) <= ? ");
+        }
+        if (estadoFiltro != null) {
+            sql.append("AND co.estado_validacion = ? ");
+        }
+
+        sql.append("ORDER BY co.fecha_procesamiento DESC");
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
+
+            int paramIndex = 1;
+            if (fechaInicio != null) {
+                pstmt.setDate(paramIndex++, java.sql.Date.valueOf(fechaInicio));
+            }
+            if (fechaFin != null) {
+                pstmt.setDate(paramIndex++, java.sql.Date.valueOf(fechaFin));
+            }
+            if (estadoFiltro != null) {
+                pstmt.setString(paramIndex++, estadoFiltro.name());
+            }
+
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                ComprobanteOCR comprobante = mapearComprobanteOCR(rs);
+                comprobantes.add(comprobante);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error al buscar comprobantes con filtros: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return comprobantes;
+    }
+
     // Obtener estadísticas de comprobantes
     public EstadisticasOCR obtenerEstadisticas() {
         String sql = "SELECT " +
